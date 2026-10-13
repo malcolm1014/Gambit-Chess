@@ -1,5 +1,6 @@
 import type { GameState, Piece, PieceType, PlayerColor, Square } from './types';
 import { canCapture } from './mathLogic';
+import { isValidChessMove } from './movementLogic';
 
 const PIECE_VALUES: Record<PieceType, number> = {
   pawn: 1,
@@ -97,6 +98,11 @@ export function executeMove(state: GameState, from: {row: number, col: number}, 
   }
 
   const targetPiece = targetSquare.piece;
+  const isCapture = !!targetPiece;
+
+  if (!isValidChessMove(newState.board, movingPiece, from, to, isCapture)) {
+    throw new Error(`Invalid move for ${movingPiece.type}.`);
+  }
 
   if (targetPiece) {
     if (targetPiece.color === movingPiece.color) {

@@ -6,8 +6,8 @@ interface Piece3DProps {
 }
 
 const materialProps = {
-  white: { color: '#ffffff', roughness: 0.1, metalness: 0.2, clearcoat: 1.0, clearcoatRoughness: 0.1 },
-  black: { color: '#1a1a1a', roughness: 0.2, metalness: 0.8, clearcoat: 0.5, clearcoatRoughness: 0.2 }
+  white: { color: '#f0f0f0', roughness: 0.3, metalness: 0.1, clearcoat: 0.5, clearcoatRoughness: 0.2 },
+  black: { color: '#222222', roughness: 0.4, metalness: 0.3, clearcoat: 0.3, clearcoatRoughness: 0.3 }
 };
 
 export const Piece3D: React.FC<Piece3DProps> = ({ piece }) => {

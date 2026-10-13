@@ -12,11 +12,12 @@ interface Board3DProps {
 
 export const Board3D: React.FC<Board3DProps> = ({ gameState, onSquareClick, selectedSquare }) => {
   return (
-    <div className="board-container" style={{ width: '100%', height: '600px', backgroundColor: '#0f0f11' }}>
+    <div className="board-container" style={{ width: '100%', height: '600px', backgroundColor: '#eef2f5' }}>
       <Canvas camera={{ position: [0, 6, 8], fov: 45 }}>
-        <ambientLight intensity={0.4} />
-        <directionalLight position={[10, 20, 10]} intensity={1.5} castShadow />
-        <Environment preset="studio" />
+        <ambientLight intensity={0.6} />
+        <directionalLight position={[5, 10, 5]} intensity={0.8} castShadow />
+        <directionalLight position={[-5, 5, -5]} intensity={0.3} />
+        <Environment preset="city" />
         <OrbitControls
           enablePan={false}
           minPolarAngle={0.1}
@@ -31,8 +32,8 @@ export const Board3D: React.FC<Board3DProps> = ({ gameState, onSquareClick, sele
               const isLight = (rowIndex + colIndex) % 2 === 0;
               const isSelected = selectedSquare?.row === rowIndex && selectedSquare?.col === colIndex;
 
-              const baseColor = isLight ? '#eeeeee' : '#222222';
-              const color = isSelected ? '#4CAF50' : baseColor;
+              const baseColor = isLight ? '#fdfdfd' : '#4a6fa5';
+              const color = isSelected ? '#ffb703' : baseColor;
 
               const xPos = colIndex;
               const zPos = rowIndex;
@@ -51,10 +52,10 @@ export const Board3D: React.FC<Board3DProps> = ({ gameState, onSquareClick, sele
                     <boxGeometry args={[1, 0.2, 1]} />
                     <meshPhysicalMaterial
                       color={color}
-                      roughness={0.1}
-                      metalness={0.1}
-                      clearcoat={1.0}
-                      clearcoatRoughness={0.1}
+                      roughness={0.2}
+                      metalness={0.05}
+                      clearcoat={0.3}
+                      clearcoatRoughness={0.2}
                     />
                   </mesh>
 
@@ -73,7 +74,7 @@ export const Board3D: React.FC<Board3DProps> = ({ gameState, onSquareClick, sele
         {/* Frame around the board */}
         <mesh position={[0, -0.15, 0]}>
           <boxGeometry args={[8.4, 0.3, 8.4]} />
-          <meshPhysicalMaterial color="#333" metalness={0.8} roughness={0.2} />
+          <meshPhysicalMaterial color="#8b5a2b" metalness={0.1} roughness={0.8} />
         </mesh>
 
         <ContactShadows position={[0, -0.3, 0]} opacity={0.7} scale={20} blur={2} far={4} />
