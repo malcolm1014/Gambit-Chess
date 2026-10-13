@@ -76,7 +76,7 @@ function simulateGame(gameIndex: number) {
   }
 }
 
-for (let i = 0; i < 50; i++) {
+for (let i = 0; i < 100; i++) {
   try {
     simulateGame(i);
   } catch (e) {
@@ -85,4 +85,4 @@ for (let i = 0; i < 50; i++) {
     throw e;
   }
 }
-console.log("Completed 50 simulation games.");
+console.log("Completed 100 simulation games.");
