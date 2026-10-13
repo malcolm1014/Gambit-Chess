@@ -215,3 +215,29 @@ h1 {
   text-align: center;
   margin-bottom: 15px;
 }
+
+.mode-selector {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.mode-selector button {
+  padding: 0.5rem 1rem;
+  border: 1px solid #ccc;
+  background: white;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.mode-selector button:hover {
+  background: #f0f0f0;
+}
+
+.mode-selector button.active-mode {
+  background: #2196f3;
+  color: white;
+  border-color: #1976d2;
+}
