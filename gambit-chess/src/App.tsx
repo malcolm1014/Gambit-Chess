@@ -2,7 +2,15 @@ import { useState } from 'react';
 import { createInitialState, executeMove } from './engine';
 import { rollAllocationPool } from './mathLogic';
 import { Board3D } from './Board3D';
+import { GambitCard } from './GambitCard';
+import type { CardData } from './GambitCard';
 import './index.css';
+
+const DEFAULT_DECK: CardData[] = [
+  { id: '1', name: 'Rally', cost: 2, description: 'Give an adjacent piece +2 Offense for one turn.', type: 'buff' },
+  { id: '2', name: 'Pitfall', cost: 4, description: 'Place a hidden trap. Enemy unit is destroyed upon entering.', type: 'trap' },
+  { id: '3', name: 'Sprint', cost: 3, description: 'Move a Pawn 2 squares forward.', type: 'movement' },
+];
 
 function App() {
   const [gameState, setGameState] = useState(() =>
@@ -65,6 +73,20 @@ function App() {
           <div key={idx}>{msg}</div>
         ))}
         {gameState.history.length === 0 && <div>Game started. Awaiting first move...</div>}
+      </div>
+
+      <div className="cards-container">
+        {DEFAULT_DECK.map(card => {
+           const currentPlayer = gameState.players[gameState.turn];
+           return (
+             <GambitCard
+               key={card.id}
+               card={card}
+               canAfford={currentPlayer.gp >= card.cost}
+               onPlay={(c) => console.log('Played card', c.name)}
+             />
+           );
+        })}
       </div>
     </div>
   );

@@ -101,6 +101,109 @@ h1 {
   border-bottom: none;
 }
 
+/* --- Gambit Cards CSS --- */
+.cards-container {
+  display: flex;
+  gap: 15px;
+  width: 100%;
+  max-width: 800px;
+  justify-content: center;
+  margin-top: 20px;
+  flex-wrap: wrap;
+}
+
+.gambit-card {
+  width: 180px;
+  background: var(--panel-bg);
+  border-radius: 12px;
+  box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+  border: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), box-shadow 0.3s ease;
+  position: relative;
+  cursor: pointer;
+}
+
+.gambit-card.affordable:hover {
+  transform: translateY(-10px) scale(1.05);
+  box-shadow: 0 15px 30px rgba(0,0,0,0.2);
+  z-index: 10;
+}
+
+.gambit-card.unaffordable {
+  opacity: 0.6;
+  cursor: not-allowed;
+  filter: grayscale(80%);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  background: rgba(0,0,0,0.03);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.card-title {
+  font-weight: 800;
+  font-size: 0.85rem;
+  color: var(--text-color);
+}
+
+.card-cost {
+  background: var(--accent-color);
+  color: white;
+  padding: 3px 6px;
+  border-radius: 10px;
+  font-size: 0.75rem;
+  font-weight: bold;
+}
+
+.card-art {
+  height: 90px;
+  width: 100%;
+  background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e0 100%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.art-placeholder {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.5);
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.type-buff .card-art { background: linear-gradient(135deg, #c6f6d5, #68d391); }
+.type-trap .card-art { background: linear-gradient(135deg, #fed7d7, #fc8181); }
+.type-movement .card-art { background: linear-gradient(135deg, #bee3f8, #63b3ed); }
+
+.card-body {
+  padding: 12px;
+  font-size: 0.75rem;
+  color: #4a5568;
+  flex-grow: 1;
+}
+
+.card-footer {
+  padding: 8px 12px;
+  background: rgba(0,0,0,0.02);
+  border-top: 1px solid var(--border-color);
+  text-align: right;
+}
+
+.card-type-label {
+  font-size: 0.6rem;
+  font-weight: bold;
+  color: #718096;
+  letter-spacing: 1px;
+}
+
 .error {
   color: var(--error-color);
   font-weight: 600;
