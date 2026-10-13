@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { createInitialState, executeMove } from './engine';
 import { rollAllocationPool } from './mathLogic';
-import { Board } from './Board';
+import { Board3D } from './Board3D';
 import './index.css';
 
 function App() {
@@ -41,7 +41,7 @@ function App() {
 
   return (
     <div className="app-container">
-      <h1>Gambit Chess</h1>
+      <h1>Gambit Chess 3D</h1>
 
       <div className="stats">
         <div className="player-stat">
@@ -56,7 +56,7 @@ function App() {
 
       {error && <div style={{ color: 'red', fontWeight: 'bold', marginBottom: '10px' }}>{error}</div>}
 
-      <Board
+      <Board3D
         gameState={gameState}
         onSquareClick={handleSquareClick}
         selectedSquare={selectedSquare}

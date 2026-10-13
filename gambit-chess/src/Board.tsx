@@ -1,5 +1,5 @@
 import React from 'react';
-import type { GameState, Piece } from './types';
+import type { GameState } from './types';
 
 interface BoardProps {
   gameState: GameState;
