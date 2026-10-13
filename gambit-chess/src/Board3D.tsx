@@ -72,7 +72,7 @@ export const Board3D: React.FC<Board3DProps> = ({ gameState, onSquareClick, sele
         </group>
 
         {/* Frame around the board */}
-        <mesh position={[0, -0.15, 0]}>
+        <mesh position={[0, -0.21, 0]}>
           <boxGeometry args={[8.4, 0.3, 8.4]} />
           <meshPhysicalMaterial color="#8b5a2b" metalness={0.1} roughness={0.8} />
         </mesh>
