@@ -41,20 +41,18 @@ function App() {
 
   return (
     <div className="app-container">
-      <h1>Gambit Chess 3D</h1>
+      <h1>Gambit Chess</h1>
 
       <div className="stats">
-        <div className="player-stat">
-          White GP: {gameState.players.white.gp} <br/>
-          Turn: {gameState.turn === 'white' ? 'Active' : ''}
+        <div className={`player-stat ${gameState.turn === 'white' ? 'active' : ''}`}>
+          White GP: {gameState.players.white.gp}
         </div>
-        <div className="player-stat">
-          Black GP: {gameState.players.black.gp} <br/>
-          Turn: {gameState.turn === 'black' ? 'Active' : ''}
+        <div className={`player-stat ${gameState.turn === 'black' ? 'active' : ''}`}>
+          Black GP: {gameState.players.black.gp}
         </div>
       </div>
 
-      {error && <div style={{ color: 'red', fontWeight: 'bold', marginBottom: '10px' }}>{error}</div>}
+      {error && <div className="error">{error}</div>}
 
       <Board3D
         gameState={gameState}
@@ -66,6 +64,7 @@ function App() {
         {gameState.history.map((msg, idx) => (
           <div key={idx}>{msg}</div>
         ))}
+        {gameState.history.length === 0 && <div>Game started. Awaiting first move...</div>}
       </div>
     </div>
   );
