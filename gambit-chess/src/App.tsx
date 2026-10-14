@@ -17,9 +17,9 @@ import type { GameState } from './types';
 import './index.css';
 
 const DEFAULT_DECK: CardData[] = [
-  { id: '1', name: 'Rally', cost: 2, description: 'Give one of your pieces +2 Offense for this turn.', type: 'buff' },
-  { id: '2', name: 'Pitfall', cost: TRAP_COST, description: 'Place a hidden trap. Enemy unit is destroyed upon entering.', type: 'trap' },
-  { id: '3', name: 'Sprint', cost: 3, description: 'Move a Pawn 2 squares forward.', type: 'movement' },
+  { id: '1', name: 'Rally', cost: 2, description: 'Give one of your pieces +2 Offense until you move.', type: 'buff' },
+  { id: '2', name: 'Pitfall', cost: TRAP_COST, description: 'Hide a trap on your half. An enemy piece that enters is destroyed (Kings are immune).', type: 'trap' },
+  { id: '3', name: 'Sprint', cost: 3, description: 'Move a Pawn 2 squares forward (both squares empty). Uses your move.', type: 'movement' },
 ];
 
 const cap = (s?: string | null) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : '');

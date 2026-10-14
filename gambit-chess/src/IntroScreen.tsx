@@ -138,10 +138,11 @@ export function IntroScreen({ onCompleteAllocation }: IntroScreenProps) {
         <h3>Core Mechanics</h3>
         <ul>
           <li><strong>Base Stats by Role:</strong> Every piece starts with Offense (O) and Defense (D) that fit who it is: Pawn <em>Spearman</em> 2/1, Knight <em>Cavalry</em> 4/3, Bishop <em>Warden</em> 3/4, Rook <em>Siege Tower</em> 5/6, Queen <em>Commander</em> 9/7, King <em>Sovereign</em> ∞/∞. Your dice points are added on top.</li>
-          <li><strong>Combat Threshold:</strong> You can <em>only</em> execute a legal capture if the attacking piece's Total Offense (Base + Modifiers) is &ge; the defending piece's Total Defense.</li>
-          <li><strong>Allocation Phase:</strong> At the start of the game, a Wolfram Rule 30 pseudo-random algorithm rolls a dice pool (3x 6d8). You must secretly allocate these points to modify your pieces' Offense or Defense before the first move.</li>
-          <li><strong>Gambit Points (GP):</strong> When your piece is captured, you gain GP equal to its chess value (Pawn 1, Knight/Bishop 3, Rook 5, Queen 9).</li>
-          <li><strong>Cards & Traps:</strong> Spend GP to play powerful cards or place hidden traps on your side of the board. Enemy pieces are destroyed upon stepping on your traps!</li>
+          <li><strong>Combat Threshold:</strong> You can <em>only</em> execute a legal capture if the attacking piece's Total Offense (Base + Modifiers, +2 with Rally) is &ge; the defending piece's Total Defense. The King can never be captured.</li>
+          <li><strong>Allocation Phase:</strong> At the start of the game, a Wolfram Rule 30 pseudo-random algorithm rolls 6d8 three times and keeps the best total (average 31.8). You secretly add these points to your piece types' Offense or Defense before the first move.</li>
+          <li><strong>Gambit Points (GP):</strong> Both sides start with 10 GP. When your piece is captured, you gain GP equal to its chess value (Pawn 1, Knight/Bishop 3, Rook 5, Queen 9).</li>
+          <li><strong>Cards & Traps:</strong> Spend GP on Rally (2 GP), Sprint (3 GP) or a hidden Pitfall trap (6 GP) on your half of the board. Enemy pieces that step on your trap are destroyed — except the King, whose infinite Defense just uses the trap up.</li>
+          <li><strong>Winning:</strong> Checkmate the enemy King. Stalemate, or 50 moves each with no piece removed, is a draw.</li>
         </ul>
       </div>
 
