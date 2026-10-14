@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gambit Chess — a strategy chess variant with stats, economy &amp; traps</title>
+<meta name="description" content="Gambit Chess is a web-based chess variant that fuses classic chess with RPG-style stat allocation, a Gambit-Point economy, and hidden traps. Play free in your browser — no download, no sign-up.">
+<meta name="theme-color" content="#0e1117">
+<!-- Open Graph / social preview -->
+<meta property="og:title" content="Gambit Chess">
+<meta property="og:description" content="Chess reimagined: allocate stats, spend Gambit Points, and spring hidden traps. Play free in your browser.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>♟</text></svg>">
+<style>
+  :root{
+    --bg:#0e1117; --panel:#161b24; --panel2:#1d2430; --line:#2b3442;
+    --ink:#e8edf4; --muted:#9aa7b8; --accent:#6ea8fe; --accent2:#f0b429; --good:#4ade80;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:
+      radial-gradient(1200px 600px at 50% -200px,rgba(110,168,254,.18),transparent 60%),
+      var(--bg);
+    color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;line-height:1.6}
+  a{color:var(--accent);text-decoration:none}
+  .wrap{max-width:900px;margin:0 auto;padding:0 20px}
+  nav{display:flex;justify-content:space-between;align-items:center;padding:18px 0}
+  nav .brand{font-weight:800;letter-spacing:.3px}
+  nav .brand span{color:var(--accent2)}
+  nav a{font-size:14px;margin-left:18px;color:var(--muted)}
+  nav a:hover{color:var(--ink)}
+
+  .hero{text-align:center;padding:40px 0 20px}
+  .hero .eyebrow{color:var(--accent2);font-weight:700;letter-spacing:2px;font-size:12px;text-transform:uppercase}
+  .hero h1{font-size:clamp(34px,7vw,60px);line-height:1.05;margin:12px 0 10px;
+    background:linear-gradient(180deg,#fff,#aab6c6);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .hero p.lead{font-size:clamp(16px,2.4vw,20px);color:var(--muted);max-width:620px;margin:0 auto 26px}
+
+  .cta{display:inline-flex;align-items:center;gap:10px;background:linear-gradient(180deg,#7fb2ff,#4d8bf5);
+    color:#06101f;font-weight:800;font-size:19px;padding:16px 34px;border-radius:14px;
+    box-shadow:0 10px 30px rgba(77,139,245,.35);transition:transform .12s, box-shadow .12s}
+  .cta:hover{transform:translateY(-2px);box-shadow:0 14px 40px rgba(77,139,245,.5)}
+  .cta .arrow{font-size:22px}
+  .subcta{display:block;margin-top:12px;font-size:13px;color:var(--muted)}
+
+  .board-art{display:grid;grid-template-columns:repeat(8,1fr);width:min(320px,72vw);aspect-ratio:1/1;
+    margin:34px auto 6px;border-radius:12px;overflow:hidden;border:2px solid var(--line);
+    box-shadow:0 20px 60px rgba(0,0,0,.45)}
+  .board-art div{display:flex;align-items:center;justify-content:center;font-size:min(5.5vw,26px)}
+  .board-art .l{background:#e7d7bd}.board-art .d{background:#9a7b53}
+  .board-art .w{color:#fff;text-shadow:0 0 2px #000}.board-art .k{color:#1b2026}
+
+  section{margin:46px 0}
+  h2{font-size:26px;margin:0 0 6px}
+  .section-sub{color:var(--muted);margin:0 0 22px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
+  .cardx{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px}
+  .cardx .ic{font-size:26px}
+  .cardx h3{margin:10px 0 6px;font-size:17px}
+  .cardx p{margin:0;color:var(--muted);font-size:14.5px}
+
+  ol.steps{counter-reset:s;list-style:none;padding:0;margin:0;display:grid;gap:12px}
+  ol.steps li{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px 14px 56px;position:relative}
+  ol.steps li::before{counter-increment:s;content:counter(s);position:absolute;left:14px;top:50%;transform:translateY(-50%);
+    width:28px;height:28px;border-radius:50%;background:var(--accent);color:#06101f;font-weight:800;
+    display:flex;align-items:center;justify-content:center}
+  ol.steps b{color:var(--ink)}
+
+  .bigplay{text-align:center;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:36px 20px}
+  footer{border-top:1px solid var(--line);margin-top:50px;padding:24px 0;color:var(--muted);font-size:13px;
+    display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav>
+    <div class="brand">♟ Gambit <span>Chess</span></div>
+    <div>
+      <a href="#how">How it works</a>
+      <a href="#features">Features</a>
+      <a href="https://github.com/malcolm1014/gambit-chess" target="_blank" rel="noopener">GitHub</a>
+    </div>
+  </nav>
+
+  <header class="hero">
+    <div class="eyebrow">A chess variant</div>
+    <h1>Chess, with a strategy layer.</h1>
+    <p class="lead">
+      Gambit Chess keeps every classic rule you know, then adds RPG-style
+      <b>stat allocation</b>, a <b>Gambit-Point economy</b>, and <b>hidden traps</b>.
+      Out-think your opponent before the first move is even made.
+    </p>
+    <a class="cta" href="game/index.html">▶ Play Gambit Chess <span class="arrow">→</span></a>
+    <span class="subcta">Free · runs in your browser · two-player hotseat · nothing to install</span>
+
+    <div class="board-art" aria-hidden="true">
+      <!-- decorative mini board -->
+      <div class="l">♜</div><div class="d">♞</div><div class="l">♝</div><div class="d">♛</div><div class="l">♚</div><div class="d">♝</div><div class="l">♞</div><div class="d">♜</div>
+      <div class="d">♟</div><div class="l">♟</div><div class="d">♟</div><div class="l">♟</div><div class="d">♟</div><div class="l">♟</div><div class="d">♟</div><div class="l">♟</div>
+      <div class="l"></div><div class="d"></div><div class="l"></div><div class="d"></div><div class="l"></div><div class="d"></div><div class="l"></div><div class="d"></div>
+      <div class="d"></div><div class="l"></div><div class="d"></div><div class="l"></div><div class="d"></div><div class="l"></div><div class="d"></div><div class="l"></div>
+      <div class="l"></div><div class="d"></div><div class="l"></div><div class="d"></div><div class="l"></div><div class="d"></div><div class="l"></div><div class="d"></div>
+      <div class="d"></div><div class="l"></div><div class="d"></div><div class="l"></div><div class="d"></div><div class="l"></div><div class="d"></div><div class="l"></div>
+      <div class="l w">♙</div><div class="d w">♙</div><div class="l w">♙</div><div class="d w">♙</div><div class="l w">♙</div><div class="d w">♙</div><div class="l w">♙</div><div class="d w">♙</div>
+      <div class="d w">♖</div><div class="l w">♘</div><div class="d w">♗</div><div class="l w">♕</div><div class="d w">♔</div><div class="l w">♗</div><div class="d w">♘</div><div class="l w">♖</div>
+    </div>
+  </header>
+
+  <section id="features">
+    <h2>What makes it different</h2>
+    <p class="section-sub">Four twists layered on top of standard chess.</p>
+    <div class="grid">
+      <div class="cardx"><div class="ic">🎲</div><h3>Stat Allocation</h3>
+        <p>Before move one, roll <b>6d8</b> three times and keep the best. Secretly spend those points as
+        <b>+Offense</b> or <b>+Defense</b> on your pieces.</p></div>
+      <div class="cardx"><div class="ic">⚔️</div><h3>Combat Threshold</h3>
+        <p>A piece can only capture when its <b>Offense ≥ the enemy's Defense</b>. A well-buffed pawn can
+        shrug off a queen.</p></div>
+      <div class="cardx"><div class="ic">💰</div><h3>Gambit-Point Economy</h3>
+        <p>Lose a piece and you're paid in <b>Gambit Points</b> equal to its value. Spend them to
+        <b>empower</b> survivors — sacrifice becomes strategy.</p></div>
+      <div class="cardx"><div class="ic">🪤</div><h3>Hidden Traps</h3>
+        <p>Spend points to bury <b>hidden traps</b> on your half of the board. Any enemy that wanders onto one
+        is destroyed on the spot.</p></div>
+    </div>
+  </section>
+
+  <section id="how">
+    <h2>How a game flows</h2>
+    <p class="section-sub">Learn it in about a minute.</p>
+    <ol class="steps">
+      <li><b>Allocate.</b> Each side rolls for a points pool and distributes +Offense / +Defense across its army, then reveals.</li>
+      <li><b>Maneuver.</b> Move like normal chess — but every capture must clear the Combat Threshold.</li>
+      <li><b>Bank &amp; spend.</b> Captured pieces earn you Gambit Points; cash them in to empower pieces or set traps.</li>
+      <li><b>Checkmate.</b> The King has Infinite Defense and can't be captured — so corner it the classic way to win.</li>
+    </ol>
+  </section>
+
+  <section class="bigplay">
+    <h2 style="border:0">Ready to play?</h2>
+    <p class="section-sub" style="margin-bottom:18px">Grab a friend and share the keyboard — it's a two-player hotseat game.</p>
+    <a class="cta" href="game/index.html">▶ Launch Gambit Chess <span class="arrow">→</span></a>
+  </section>
+
+  <footer>
+    <span>♟ Gambit Chess — an open-source chess variant.</span>
+    <span><a href="game/index.html">Play</a> · <a href="https://github.com/malcolm1014/gambit-chess" target="_blank" rel="noopener">Source on GitHub</a></span>
+  </footer>
+</div>
+</body>
+</html>
