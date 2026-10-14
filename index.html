@@ -1,103 +1,331 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gambit Chess - A Mathematically Rigorous Strategy Game</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f1f5f9;
-            color: #334155;
-            line-height: 1.6;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-        }
-        .container {
-            max-width: 800px;
-            background: #ffffff;
-            padding: 3rem;
-            border-radius: 12px;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-            text-align: center;
-        }
-        h1 {
-            color: #1e3a8a;
-            font-size: 2.5rem;
-            margin-bottom: 0.5rem;
-        }
-        .subtitle {
-            font-size: 1.2rem;
-            color: #64748b;
-            margin-bottom: 2rem;
-        }
-        p {
-            font-size: 1.1rem;
-            text-align: left;
-            margin-bottom: 1.5rem;
-        }
-        .features {
-            text-align: left;
-            background: #f8fafc;
-            padding: 1.5rem;
-            border-radius: 8px;
-            border: 1px solid #e2e8f0;
-            margin-bottom: 2rem;
-        }
-        .features h3 {
-            margin-top: 0;
-            color: #0f172a;
-        }
-        .features ul {
-            padding-left: 1.5rem;
-        }
-        .play-button {
-            display: inline-block;
-            background-color: #2563eb;
-            color: white;
-            font-size: 1.25rem;
-            font-weight: bold;
-            padding: 1rem 2.5rem;
-            text-decoration: none;
-            border-radius: 8px;
-            transition: background-color 0.2s, transform 0.1s;
-            box-shadow: 0 4px 6px rgba(37, 99, 235, 0.2);
-        }
-        .play-button:hover {
-            background-color: #1d4ed8;
-            transform: translateY(-2px);
-        }
-        .play-button:active {
-            transform: translateY(0);
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gambit Chess</title>
+<meta name="description" content="Gambit Chess: classic chess with RPG stats, dice-rolled allocation, Gambit Points, cards and hidden traps. Play free in your browser.">
+<link rel="icon" type="image/svg+xml" href="./play/favicon.svg">
+<style>
+  :root{
+    --bg:#0b1020; --bg2:#121a33; --panel:#18213f; --line:#2a355e;
+    --text:#e7ebf7; --muted:#a3add0; --accent:#f5b83d; --accent2:#4a6fa5;
+    --good:#5ccf8f; --bad:#ff7a7a; --radius:14px;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--text);
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,Inter,Arial,sans-serif;line-height:1.6}
+  a{color:var(--accent)}
+  .wrap{max-width:1100px;margin:0 auto;padding:0 16px}
+
+  /* nav */
+  nav{position:sticky;top:0;z-index:20;background:rgba(11,16,32,.9);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+  nav .wrap{display:flex;align-items:center;justify-content:space-between;height:58px;gap:12px}
+  .brand{font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--text);text-decoration:none;white-space:nowrap}
+  .brand span{color:var(--accent)}
+  .links{display:flex;gap:18px;overflow-x:auto}
+  .links a{color:var(--muted);text-decoration:none;font-size:.92rem;white-space:nowrap}
+  .links a:hover{color:var(--text)}
+
+  /* hero */
+  .hero{padding:72px 0 56px;background:
+      radial-gradient(800px 380px at 80% 0%,rgba(74,111,165,.35),transparent 70%),
+      radial-gradient(600px 300px at 10% 100%,rgba(245,184,61,.12),transparent 70%)}
+  .hero-grid{display:grid;grid-template-columns:1.2fr .8fr;gap:40px;align-items:center}
+  .eyebrow{color:var(--accent);font-weight:700;letter-spacing:.14em;text-transform:uppercase;font-size:.8rem}
+  h1{font-size:clamp(2.4rem,6vw,4rem);line-height:1.05;margin:.3em 0 .35em}
+  .lead{font-size:1.15rem;color:var(--muted);max-width:56ch}
+  .cta{display:flex;flex-wrap:wrap;gap:12px;margin-top:28px}
+  .btn{display:inline-flex;align-items:center;gap:8px;padding:14px 26px;border-radius:10px;font-weight:700;text-decoration:none;font-size:1.05rem;transition:transform .15s,background .15s}
+  .btn:hover{transform:translateY(-2px)}
+  .btn-primary{background:var(--accent);color:#1a1300}
+  .btn-ghost{border:1px solid var(--line);color:var(--text);background:var(--panel)}
+  .board-art{aspect-ratio:1;border-radius:var(--radius);overflow:hidden;display:grid;grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(8,1fr);
+    box-shadow:0 30px 60px rgba(0,0,0,.5);border:1px solid var(--line);transform:perspective(900px) rotateX(18deg)}
+  .board-art div{display:flex;align-items:center;justify-content:center;font-size:clamp(1rem,3.4vw,1.9rem)}
+  .board-art .l{background:#fdfdfd;color:#1b2238}.board-art .d{background:var(--accent2);color:#fdfdfd}
+  .board-art .hl{background:#ffb703 !important}
+
+  section{padding:64px 0;border-top:1px solid var(--line)}
+  h2{font-size:clamp(1.7rem,3.5vw,2.3rem);margin:0 0 .3em}
+  .sub{color:var(--muted);margin:0 0 32px;max-width:65ch}
+
+  /* play */
+  #play{background:var(--bg2)}
+  .frame-bar{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px}
+  .frame-bar small{color:var(--muted)}
+  .frame{border-radius:var(--radius);overflow:hidden;border:1px solid var(--line);background:#f0f4f8;box-shadow:0 20px 50px rgba(0,0,0,.45)}
+  .frame iframe{display:block;width:100%;height:1400px;border:0}
+  .frame-loader{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;height:420px;color:#2d3748;text-align:center;padding:16px}
+  .frame-loader .btn{font-size:1.15rem}
+
+  /* cards / grids */
+  .grid{display:grid;gap:18px}
+  .g4{grid-template-columns:repeat(4,1fr)}.g3{grid-template-columns:repeat(3,1fr)}.g2{grid-template-columns:repeat(2,1fr)}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:22px}
+  .card h3{margin:.2em 0 .4em;font-size:1.12rem}
+  .card p{margin:0;color:var(--muted)}
+  .num{width:34px;height:34px;border-radius:50%;background:var(--accent);color:#1a1300;font-weight:800;display:flex;align-items:center;justify-content:center}
+  .icon{font-size:1.8rem}
+
+  /* table */
+  .table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--radius)}
+  table{width:100%;border-collapse:collapse;min-width:480px}
+  th,td{padding:12px 16px;text-align:left;border-bottom:1px solid var(--line)}
+  th{background:var(--panel);color:var(--muted);font-size:.8rem;text-transform:uppercase;letter-spacing:.08em}
+  tr:last-child td{border-bottom:0}
+  td .p{font-size:1.4rem;margin-right:8px;vertical-align:middle}
+
+  .formula{font-family:ui-monospace,Consolas,monospace;background:#0e1530;border:1px solid var(--line);border-radius:10px;padding:16px 18px;font-size:1.05rem;margin:18px 0;overflow-x:auto}
+  .formula b{color:var(--accent)}
+
+  /* gambit cards */
+  .gcard{border-radius:var(--radius);overflow:hidden;border:1px solid var(--line);background:var(--panel);display:flex;flex-direction:column}
+  .gcard .top{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;font-weight:800}
+  .cost{background:var(--accent2);color:#fff;border-radius:999px;padding:2px 10px;font-size:.8rem}
+  .gcard .art{height:70px}
+  .buff .art{background:linear-gradient(135deg,#c6f6d5,#68d391)}
+  .trap .art{background:linear-gradient(135deg,#fed7d7,#fc8181)}
+  .move .art{background:linear-gradient(135deg,#bee3f8,#63b3ed)}
+  .gcard .body{padding:14px 16px;color:var(--muted);flex:1}
+  .gcard .foot{padding:10px 16px;border-top:1px solid var(--line);display:flex;justify-content:space-between;font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+  .tag{padding:2px 8px;border-radius:999px;font-weight:700}
+  .tag.on{background:rgba(92,207,143,.15);color:var(--good)}
+  .tag.soon{background:rgba(163,173,208,.12);color:var(--muted)}
+
+  ul.clean{padding-left:1.2em;margin:0}
+  ul.clean li{margin:.4em 0;color:var(--muted)}
+  ul.clean li b{color:var(--text)}
+
+  details{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 20px;margin-bottom:12px}
+  summary{cursor:pointer;font-weight:700}
+  details p{color:var(--muted);margin:.7em 0 0}
+
+  footer{border-top:1px solid var(--line);padding:32px 0;color:var(--muted);font-size:.9rem}
+  footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
+
+  @media (max-width:900px){
+    .hero-grid{grid-template-columns:1fr}
+    .board-art{max-width:360px;margin:0 auto;width:100%}
+    .g4{grid-template-columns:repeat(2,1fr)}.g3{grid-template-columns:1fr}
+    .frame iframe{height:2100px}
+  }
+  @media (max-width:560px){
+    .g4,.g2{grid-template-columns:1fr}
+    .links{display:none}
+    .hero{padding:48px 0 40px}
+    section{padding:48px 0}
+  }
+</style>
 </head>
 <body>
 
-<div class="container">
-    <h1>Gambit Chess</h1>
-    <div class="subtitle">Classic strategy, redefined by modern mechanics.</div>
+<nav>
+  <div class="wrap">
+    <a class="brand" href="#top">&#9822; Gambit <span>Chess</span></a>
+    <div class="links">
+      <a href="#play">Play</a>
+      <a href="#how">How to Play</a>
+      <a href="#rules">Rules</a>
+      <a href="#cards">Cards</a>
+      <a href="#tips">Strategy</a>
+      <a href="#faq">FAQ</a>
+    </div>
+  </div>
+</nav>
 
-    <p>
-        Welcome to <strong>Gambit Chess</strong>. This is not your standard game of chess. Gambit Chess introduces RPG-style stat allocation, a resource economy, and hidden information mechanics wrapped in a sleek, modern 3D interface.
-    </p>
+<header class="hero" id="top">
+  <div class="wrap hero-grid">
+    <div>
+      <div class="eyebrow">Free &middot; In your browser &middot; No sign-up</div>
+      <h1>Chess, with stats, sacrifices and traps.</h1>
+      <p class="lead">Gambit Chess keeps the board you know and adds RPG-style stats. Before the game you roll dice and power up your pieces. A capture only works if your attacker is strong enough. Losing pieces earns you Gambit Points, and you spend those on cards and hidden traps.</p>
+      <div class="cta">
+        <a class="btn btn-primary" href="#play">&#9654; Play now</a>
+        <a class="btn btn-ghost" href="./play/index.html" target="_blank" rel="noopener">Open full screen &#8599;</a>
+        <a class="btn btn-ghost" href="#how">How to play</a>
+      </div>
+    </div>
+    <div class="board-art" aria-hidden="true" id="art"></div>
+  </div>
+</header>
 
-    <div class="features">
-        <h3>Why Gambit Chess is Different:</h3>
-        <ul>
-            <li><strong>Combat Thresholds:</strong> Standard movement applies, but you can only capture an enemy piece if your Total Offense mathematically exceeds their Total Defense.</li>
-            <li><strong>Pre-Game Allocation:</strong> Roll a Wolfram Rule 30 generated dice pool to secretly allocate stat modifiers (+Offense or +Defense) to your pieces before the game begins.</li>
-            <li><strong>Gambit Points (GP):</strong> Earn GP when you sacrifice pieces. Use your GP economy to activate special cards.</li>
-            <li><strong>Hidden Traps:</strong> Spend GP to place hidden traps on your side of the board. Enemy pieces are destroyed instantly upon stepping on them.</li>
-        </ul>
+<!-- PLAY -->
+<section id="play">
+  <div class="wrap">
+    <h2>Play Gambit Chess</h2>
+    <p class="sub">The full 3D game runs below. You can play the computer or a friend on the same device. Click a piece to select it, then click a square to move. Drag on the board to rotate the camera, and scroll to zoom.</p>
+    <div class="frame-bar">
+      <small>Best on a laptop or desktop. Needs a browser with WebGL (Chrome, Edge, Firefox or Safari).</small>
+      <a class="btn btn-ghost" style="padding:8px 16px;font-size:.9rem" href="./play/index.html" target="_blank" rel="noopener">Open in its own tab &#8599;</a>
+    </div>
+    <div class="frame" id="frame">
+      <div class="frame-loader">
+        <div style="font-size:3rem">&#9822;</div>
+        <strong style="font-size:1.2rem">Ready when you are</strong>
+        <span>The 3D game loads when you start it, so this page stays fast.</span>
+        <button class="btn btn-primary" id="start" style="border:0;cursor:pointer">&#9654; Start game</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW TO PLAY -->
+<section id="how">
+  <div class="wrap">
+    <h2>How to play, in 4 steps</h2>
+    <p class="sub">The game is in two phases. First you set up your army, then you play.</p>
+    <div class="grid g4">
+      <div class="card"><div class="num">1</div><h3>Pick a mode</h3><p><b>1 Player (vs AI)</b> puts you on White against the computer. <b>2 Player (Local)</b> lets two people take turns on one screen.</p></div>
+      <div class="card"><div class="num">2</div><h3>Spend your dice pool</h3><p>The game rolls 6d8 three times and you keep the highest total. Use the <b>+ / &minus;</b> buttons to add Offense or Defense to each piece type. You have to spend every point before you can continue.</p></div>
+      <div class="card"><div class="num">3</div><h3>Move &amp; capture</h3><p>White moves first. Click one of your pieces, then click the square you want. If a capture isn't strong enough, the game tells you why and the move is cancelled.</p></div>
+      <div class="card"><div class="num">4</div><h3>Use your GP</h3><p>Your GP is shown at the top. Click a card you can afford. For <b>Pitfall</b>, click an empty square on your half of the board to hide a trap there.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- RULES -->
+<section id="rules">
+  <div class="wrap">
+    <h2>The rules</h2>
+    <p class="sub">Pieces move like they do in chess. The difference is in combat and the resource economy.</p>
+
+    <div class="grid g2">
+      <div>
+        <h3>&#9876; The Combat Threshold</h3>
+        <p style="color:var(--muted)">Each piece has an <b>Offense</b> score and a <b>Defense</b> score. Each one is the piece's base value plus whatever points you put on it during setup. A capture only goes through if:</p>
+        <div class="formula"><b>Attacker Offense</b> (base + mod) &ge; <b>Defender Defense</b> (base + mod)</div>
+        <p style="color:var(--muted)">That means a well-built pawn can take a knight, and a queen you made heavily defensive can be very hard to remove.</p>
+      </div>
+      <div>
+        <h3>&#127922; Allocation Phase</h3>
+        <p style="color:var(--muted)">Each side rolls <b>6d8 three times and keeps the best total</b>, which comes to somewhere between 6 and 48 points. The dice use a <b>Wolfram Rule 30</b> cellular-automaton random number generator. Points go to a <b>piece type</b>, so +2 Offense on Pawn gives all eight pawns +2 Offense.</p>
+        <p style="color:var(--muted)">In 2-player mode, White allocates first and Black allocates second. Have your opponent look away while you set yours.</p>
+      </div>
     </div>
 
-    <a href="./play/index.html" class="play-button">Play the Game</a>
-</div>
+    <h3 style="margin-top:36px">Base stats</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Piece</th><th>Base Offense</th><th>Base Defense</th><th>GP to owner when captured</th></tr></thead>
+        <tbody>
+          <tr><td><span class="p">&#9823;</span>Pawn</td><td>1</td><td>1</td><td>+1</td></tr>
+          <tr><td><span class="p">&#9822;</span>Knight</td><td>3</td><td>3</td><td>+3</td></tr>
+          <tr><td><span class="p">&#9821;</span>Bishop</td><td>3</td><td>3</td><td>+3</td></tr>
+          <tr><td><span class="p">&#9820;</span>Rook</td><td>5</td><td>5</td><td>+5</td></tr>
+          <tr><td><span class="p">&#9819;</span>Queen</td><td>9</td><td>9</td><td>+9</td></tr>
+          <tr><td><span class="p">&#9818;</span>King</td><td>&infin;</td><td>&infin;</td><td>&mdash;</td></tr>
+        </tbody>
+      </table>
+    </div>
 
+    <div class="grid g2" style="margin-top:36px">
+      <div class="card">
+        <h3>&#128176; Gambit Points (the sacrifice economy)</h3>
+        <ul class="clean">
+          <li><b>White starts with 10 GP</b> and <b>Black starts with 0</b>.</li>
+          <li>When one of <b>your</b> pieces is captured, <b>you</b> get GP equal to its base value. Losing material pays you.</li>
+          <li>You spend GP on Gambit Cards and traps.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>&#128163; Hidden traps</h3>
+        <ul class="clean">
+          <li>A trap costs <b>4 GP</b> (it's the Pitfall card).</li>
+          <li>You can only place one on <b>your half</b> of the board, and only one trap per square.</li>
+          <li>When an enemy piece lands on it, the piece is <b>destroyed</b> and the trap is used up. Your own pieces can stand on it safely.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:18px">
+      <h3>&#9881; Movement in the current version</h3>
+      <ul class="clean">
+        <li><b>Pawns</b> move one square forward and capture one square diagonally. There's no two-square first move, en passant or promotion.</li>
+        <li><b>Knights, bishops, rooks and queens</b> move as in chess. Only knights jump over pieces.</li>
+        <li><b>Kings</b> move one square in any direction. There's no castling.</li>
+        <li>The game doesn't detect check or checkmate. Agree on how you'll decide the winner before you start (for example, capturing the king or most material left).</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- CARDS -->
+<section id="cards">
+  <div class="wrap">
+    <h2>Gambit Cards</h2>
+    <p class="sub">You'll see these cards under the board. A card you can't afford is greyed out.</p>
+    <div class="grid g3">
+      <div class="gcard buff"><div class="top">Rally <span class="cost">2 GP</span></div><div class="art"></div><div class="body">Give an adjacent piece +2 Offense for one turn.</div><div class="foot"><span>Buff</span><span class="tag soon">Coming soon</span></div></div>
+      <div class="gcard trap"><div class="top">Pitfall <span class="cost">4 GP</span></div><div class="art"></div><div class="body">Place a hidden trap. Enemy unit is destroyed upon entering.</div><div class="foot"><span>Trap</span><span class="tag on">Playable</span></div></div>
+      <div class="gcard move"><div class="top">Sprint <span class="cost">3 GP</span></div><div class="art"></div><div class="body">Move a Pawn 2 squares forward.</div><div class="foot"><span>Movement</span><span class="tag soon">Coming soon</span></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- TIPS -->
+<section id="tips">
+  <div class="wrap">
+    <h2>Strategy tips</h2>
+    <p class="sub">Some ideas to get you started.</p>
+    <div class="grid g3">
+      <div class="card"><div class="icon">&#9823;</div><h3>Points on pawns go far</h3><p>A point on a piece type applies to every piece of that type. +1 on Pawn upgrades eight pieces, while +1 on Queen upgrades one.</p></div>
+      <div class="card"><div class="icon">&#128737;</div><h3>Out-defend their attackers</h3><p>If your rook's Defense is higher than every Offense your opponent has, nothing can capture it.</p></div>
+      <div class="card"><div class="icon">&#9876;</div><h3>Know your kill lines</h3><p>Write down which of your pieces can beat which of theirs. A failed capture costs you nothing, so feel free to test.</p></div>
+      <div class="card"><div class="icon">&#128176;</div><h3>Trade on purpose</h3><p>Every piece you lose gives you GP. A well-timed sacrifice can pay for a trap in the right spot.</p></div>
+      <div class="card"><div class="icon">&#128163;</div><h3>Trap the entry squares</h3><p>Put Pitfalls on the squares enemy knights and rooks need to reach to invade your side.</p></div>
+      <div class="card"><div class="icon">&#9818;</div><h3>White's 10 GP head start</h3><p>As White, you can afford two traps before Black has earned anything. Use them early.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section id="faq">
+  <div class="wrap">
+    <h2>FAQ</h2>
+    <details><summary>Do I need to download or sign up for anything?</summary><p>No. Gambit Chess runs entirely in your browser and is free to play.</p></details>
+    <details><summary>The board is blank or won't load.</summary><p>The game needs WebGL for its 3D board. Use an up-to-date Chrome, Edge, Firefox or Safari. If it still doesn't show, try opening it in its own tab with the "Open full screen" button.</p></details>
+    <details><summary>Why was my capture rejected?</summary><p>Your attacker's total Offense was lower than the target's total Defense. The red message above the board shows both numbers.</p></details>
+    <details><summary>"Start Game" is greyed out.</summary><p>You have to spend every point in your dice pool before you can continue. Check "Points Remaining" and keep adding until it's 0.</p></details>
+    <details><summary>How do I restart?</summary><p>Reload the page, or click "Start game" again. Each new game rolls new dice pools.</p></details>
+    <details><summary>Can I play on my phone?</summary><p>Yes, but there's a lot on screen, so a tablet, laptop or desktop works best.</p></details>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>&copy; Gambit Chess &middot; malcolm1014</span>
+    <span><a href="https://github.com/malcolm1014/Gambit-Chess" target="_blank" rel="noopener">Source on GitHub</a> &middot; <a href="#top">Back to top &uarr;</a></span>
+  </div>
+</footer>
+
+<script>
+  // Decorative hero board
+  (function(){
+    var art=document.getElementById('art');
+    var back='&#9820;&#9822;&#9821;&#9819;&#9818;&#9821;&#9822;&#9820;'.split(';').filter(Boolean).map(function(s){return s+';'});
+    for(var r=0;r<8;r++){for(var c=0;c<8;c++){
+      var d=document.createElement('div');
+      d.className=((r+c)%2===0?'l':'d')+((r===5&&c===3)?' hl':'');
+      var p='';
+      if(r===0)p=back[c]; else if(r===1)p='&#9823;';
+      else if(r===6)p='&#9817;'; else if(r===7)p=back[c].replace(/&#98(\d\d);/,function(m,n){return '&#98'+(n-6)+';'});
+      if(r===5&&c===3)p='&#9817;';
+      if(r===6&&c===3)p='';
+      d.innerHTML=p; art.appendChild(d);
+    }}
+  })();
+
+  // Load the original game on demand (game files are untouched)
+  function loadGame(){
+    var f=document.getElementById('frame');
+    f.innerHTML='<iframe src="./play/index.html" title="Gambit Chess game" allow="fullscreen" loading="eager"></iframe>';
+  }
+  document.getElementById('start').addEventListener('click',loadGame);
+  document.querySelectorAll('a[href="#play"]').forEach(function(a){
+    a.addEventListener('click',function(){ if(!document.querySelector('#frame iframe')) loadGame(); });
+  });
+</script>
 </body>
 </html>
