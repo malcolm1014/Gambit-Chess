@@ -6,6 +6,7 @@ import { Board3D } from './Board3D';
 import { GambitCard } from './GambitCard';
 import type { CardData } from './GambitCard';
 import { getComputerMove } from './ai';
+import { IntroScreen } from './IntroScreen';
 import './index.css';
 
 const DEFAULT_DECK: CardData[] = [
@@ -93,6 +94,39 @@ function App() {
       }
     }
   };
+
+  const handleCompleteAllocation = (allocations: any) => {
+    // Apply allocations to the board pieces
+    const newState = { ...gameState };
+
+    // Apply stats to pieces
+    for (let r = 0; r < 8; r++) {
+      for (let c = 0; c < 8; c++) {
+        const piece = newState.board[r][c].piece;
+        if (piece) {
+          const colorAllocations = allocations[piece.color];
+          if (colorAllocations && colorAllocations[piece.type]) {
+            piece.modOffense = colorAllocations[piece.type].modOffense;
+            piece.modDefense = colorAllocations[piece.type].modDefense;
+          }
+        }
+      }
+    }
+
+    newState.players.white.allocationReady = true;
+    newState.players.black.allocationReady = true;
+    newState.phase = 'main';
+    setGameState(newState);
+  };
+
+  if (gameState.phase === 'allocation') {
+    return (
+      <IntroScreen
+        gameState={gameState}
+        onCompleteAllocation={handleCompleteAllocation}
+      />
+    );
+  }
 
   return (
     <div className="app-container">
