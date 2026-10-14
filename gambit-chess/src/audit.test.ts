@@ -214,6 +214,11 @@ describe('Role stats and Combat Threshold', () => {
 });
 
 describe('Gambit Points, cards and promotion', () => {
+  it('both sides start with the same 10 GP', () => {
+    const s = createInitialState(30, 30);
+    expect(s.players.white.gp).toBe(10);
+    expect(s.players.black.gp).toBe(10);
+  }, SLOW);
   it('captured side gains the piece\'s chess value', () => {
     const s = emptyState();
     put(s, 'e1', 'king', 'white'); put(s, 'e8', 'king', 'black');

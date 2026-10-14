@@ -75,6 +75,9 @@ export function initializeBoard(): Square[][] {
   return board;
 }
 
+// Both sides begin with the same Gambit Points
+export const STARTING_GP = 10;
+
 export function createInitialState(whiteDicePool: number, blackDicePool: number): GameState {
   return {
     board: initializeBoard(),
@@ -83,13 +86,13 @@ export function createInitialState(whiteDicePool: number, blackDicePool: number)
     players: {
       white: {
         color: 'white',
-        gp: 10,
+        gp: STARTING_GP,
         dicePool: whiteDicePool,
         allocationReady: false
       },
       black: {
         color: 'black',
-        gp: 0,
+        gp: STARTING_GP,
         dicePool: blackDicePool,
         allocationReady: false
       }
