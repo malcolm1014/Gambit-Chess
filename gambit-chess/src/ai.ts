@@ -1,54 +1,26 @@
 import type { GameState } from './types';
-import { executeMove } from './engine';
-import { isValidChessMove } from './movementLogic';
+import { getLegalMoves, isGameOver } from './engine';
 
-export function getComputerMove(state: GameState): { from: { row: number, col: number }, to: { row: number, col: number } } | null {
-  const currentPlayer = state.turn;
-  const pieces: { row: number, col: number }[] = [];
+type Move = { from: { row: number, col: number }, to: { row: number, col: number } };
 
-  // Find all pieces for the current player
-  for (let r = 0; r < 8; r++) {
-    for (let c = 0; c < 8; c++) {
-      if (state.board[r][c].piece?.color === currentPlayer) {
-        pieces.push({ row: r, col: c });
-      }
-    }
-  }
+// Picks a fully legal move for the side to move (respects the Combat Threshold
+// and King safety). Prefers capturing the most valuable piece it can; otherwise random.
+export function getComputerMove(state: GameState): Move | null {
+  if (isGameOver(state)) return null;
+  const moves = getLegalMoves(state, state.turn);
+  if (moves.length === 0) return null;
 
-  // Generate all pseudo-legal moves for the player
-  const possibleMoves: { from: { row: number, col: number }, to: { row: number, col: number } }[] = [];
-  for (const from of pieces) {
-    const movingPiece = state.board[from.row][from.col].piece!;
+  const captures = moves
+    .filter(m => state.board[m.to.row][m.to.col].piece)
+    .sort((a, b) =>
+      state.board[b.to.row][b.to.col].piece!.baseDefense - state.board[a.to.row][a.to.col].piece!.baseDefense
+    );
 
-    for (let r = 0; r < 8; r++) {
-      for (let c = 0; c < 8; c++) {
-        const targetPiece = state.board[r][c].piece;
-        // Don't try moving to same spot or own piece
-        if (r === from.row && c === from.col) continue;
-        if (targetPiece?.color === currentPlayer) continue;
+  // Take the best capture most of the time, so the AI isn't completely aimless
+  if (captures.length > 0 && Math.random() < 0.8) return captures[0];
 
-        const to = { row: r, col: c };
-        const isCapture = !!targetPiece;
-
-        if (isValidChessMove(state.board, movingPiece, from, to, isCapture)) {
-           possibleMoves.push({ from, to });
-        }
-      }
-    }
-  }
-
-  // Shuffle and try until we find a legally executable move (passes combat threshold)
-  possibleMoves.sort(() => Math.random() - 0.5);
-
-  for (const move of possibleMoves) {
-    try {
-      // Just check if it's executable without throwing
-      executeMove(state, move.from, move.to);
-      return move;
-    } catch (e) {
-      // Expected if Combat Threshold failed or other execution error
-    }
-  }
-
-  return null;
+  // Don't wander the King around (it can walk into hidden traps) unless it has to
+  const nonKing = moves.filter(m => state.board[m.from.row][m.from.col].piece!.type !== 'king');
+  const pool = nonKing.length > 0 ? nonKing : moves;
+  return pool[Math.floor(Math.random() * pool.length)];
 }

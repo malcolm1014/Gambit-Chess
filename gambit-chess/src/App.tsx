@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { createInitialState, executeMove, placeTrap } from './engine';
+import { createInitialState, executeMove, placeTrap, playRally, isGameOver } from './engine';
 import { rollAllocationPool } from './mathLogic';
 import { useEffect } from 'react';
 import { Board3D } from './Board3D';
@@ -11,10 +11,12 @@ import type { GameState } from './types';
 import './index.css';
 
 const DEFAULT_DECK: CardData[] = [
-  { id: '1', name: 'Rally', cost: 2, description: 'Give an adjacent piece +2 Offense for one turn.', type: 'buff' },
+  { id: '1', name: 'Rally', cost: 2, description: 'Give one of your pieces +2 Offense for this turn.', type: 'buff' },
   { id: '2', name: 'Pitfall', cost: 4, description: 'Place a hidden trap. Enemy unit is destroyed upon entering.', type: 'trap' },
   { id: '3', name: 'Sprint', cost: 3, description: 'Move a Pawn 2 squares forward.', type: 'movement' },
 ];
+
+const cap = (s?: string | null) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : '');
 
 function App() {
   const [gameState, setGameState] = useState<GameState>(() =>
@@ -24,10 +26,13 @@ function App() {
   const [selectedSquare, setSelectedSquare] = useState<{row: number, col: number} | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [gameMode, setGameMode] = useState<'pvp' | 'pvc'>('pvc'); // default player vs computer
-  const [pendingAction, setPendingAction] = useState<{type: 'trap', card: CardData} | null>(null);
+  const [pendingAction, setPendingAction] = useState<{type: 'trap' | 'rally' | 'sprint', card: CardData} | null>(null);
+
+  const gameOver = isGameOver(gameState);
+  const isComputerTurn = gameMode === 'pvc' && gameState.turn === 'black';
 
   useEffect(() => {
-    if (gameMode === 'pvc' && gameState.turn === 'black') {
+    if (gameState.phase === 'main' && !isGameOver(gameState) && gameMode === 'pvc' && gameState.turn === 'black') {
       // Computer's turn
       const timer = setTimeout(() => {
         const move = getComputerMove(gameState);
@@ -39,7 +44,7 @@ function App() {
             console.error("AI Move failed", e);
           }
         } else {
-           // Stalemate / Game Over handling can go here
+           // Should not happen: the engine marks checkmate/stalemate when a side has no moves
            console.log("AI has no valid moves.");
         }
       }, 500); // 500ms delay for visual effect
@@ -48,10 +53,32 @@ function App() {
   }, [gameState, gameMode]);
 
   const handleSquareClick = (row: number, col: number) => {
-    // If it's PVC and black's turn, ignore clicks
-    if (gameMode === 'pvc' && gameState.turn === 'black') return;
+    // Ignore clicks after the game ends, or while the computer is thinking
+    if (gameOver || isComputerTurn) return;
 
     setError(null);
+
+    if (pendingAction?.type === 'rally') {
+      try {
+        setGameState(playRally(gameState, { row, col }));
+      } catch (e: any) {
+        setError(e.message);
+      }
+      setPendingAction(null);
+      return;
+    }
+
+    if (pendingAction?.type === 'sprint') {
+      try {
+        const forward = gameState.turn === 'white' ? -1 : 1;
+        setGameState(executeMove(gameState, { row, col }, { row: row + 2 * forward, col }, { sprint: true }));
+      } catch (e: any) {
+        setError(e.message);
+      }
+      setPendingAction(null);
+      setSelectedSquare(null);
+      return;
+    }
 
     if (pendingAction?.type === 'trap') {
        try {
@@ -80,9 +107,13 @@ function App() {
       }
     } else {
       // If something is already selected, attempt to move
+      const clicked = gameState.board[row][col].piece;
       if (selectedSquare.row === row && selectedSquare.col === col) {
         // Deselect
         setSelectedSquare(null);
+      } else if (clicked && clicked.color === gameState.turn) {
+        // Clicking another of your own pieces switches the selection
+        setSelectedSquare({ row, col });
       } else {
         try {
           const newState = executeMove(gameState, selectedSquare, { row, col });
@@ -156,10 +187,30 @@ function App() {
         </div>
       </div>
 
+      {gameOver && (
+        <div className="game-over">
+          <strong>
+            {gameState.status === 'checkmate' && `Checkmate! ${cap(gameState.winner)} wins.`}
+            {gameState.status === 'king-destroyed' && `${cap(gameState.winner)} wins — the enemy King hit a trap!`}
+            {gameState.status === 'stalemate' && 'Stalemate — the game is a draw.'}
+            {gameState.status === 'draw' && 'Draw — 50 moves each without a capture.'}
+          </strong>
+          <button onClick={handleNewGame}>Play Again</button>
+        </div>
+      )}
+      {!gameOver && (
+        <div className="turn-indicator">
+          {isComputerTurn ? 'Computer is thinking…' : `${cap(gameState.turn)} to move`}
+          {gameState.inCheck && <span className="check-badge">{cap(gameState.inCheck)} is in CHECK</span>}
+        </div>
+      )}
       {error && <div className="error">{error}</div>}
       {pendingAction && (
         <div className="status-message" style={{ color: '#d90429', fontWeight: 'bold', margin: '10px 0' }}>
-          Select a square on your side of the board to place {pendingAction.card.name}.
+          {pendingAction.type === 'trap' && `Select an empty square on your side of the board to place ${pendingAction.card.name}.`}
+          {pendingAction.type === 'rally' && 'Select one of your pieces to Rally (+2 Offense this turn).'}
+          {pendingAction.type === 'sprint' && 'Select one of your Pawns to Sprint 2 squares forward.'}
+          {' '}<button className="cancel-button" onClick={() => setPendingAction(null)}>Cancel</button>
         </div>
       )}
 
@@ -169,7 +220,7 @@ function App() {
         selectedSquare={selectedSquare}
       />
 
-      <div className="history">
+      <div className="history" ref={el => { if (el) el.scrollTop = el.scrollHeight; }}>
         {gameState.history.map((msg: string, idx: number) => (
           <div key={idx}>{msg}</div>
         ))}
@@ -183,13 +234,13 @@ function App() {
              <GambitCard
                key={card.id}
                card={card}
-               canAfford={currentPlayer.gp >= card.cost}
+               canAfford={!gameOver && !isComputerTurn && currentPlayer.gp >= card.cost}
                onPlay={(c) => {
-                 if (c.id === '2') {
-                    setPendingAction({ type: 'trap', card: c });
-                 } else {
-                    console.log('Played card', c.name);
-                 }
+                 setError(null);
+                 setSelectedSquare(null);
+                 if (c.id === '1') setPendingAction({ type: 'rally', card: c });
+                 else if (c.id === '2') setPendingAction({ type: 'trap', card: c });
+                 else if (c.id === '3') setPendingAction({ type: 'sprint', card: c });
                }}
              />
            );

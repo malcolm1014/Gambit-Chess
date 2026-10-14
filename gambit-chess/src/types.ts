@@ -9,6 +9,7 @@ export interface Piece {
   baseDefense: number;
   modOffense: number; // Allocated from 6d8
   modDefense: number; // Allocated from 6d8
+  tempOffense?: number; // Short-lived bonus (e.g. Rally card), cleared after the owner's move
 }
 
 export interface Trap {
@@ -41,4 +42,9 @@ export interface GameState {
     black: PlayerState;
   };
   history: string[]; // Keep track of moves or events
+  // Game result tracking (optional so older code that builds states still works)
+  status?: 'playing' | 'checkmate' | 'stalemate' | 'king-destroyed' | 'draw';
+  winner?: PlayerColor | null;
+  inCheck?: PlayerColor | null; // Which side's king is currently in check
+  movesSinceCapture?: number;   // Plies since the last capture (for the draw rule)
 }

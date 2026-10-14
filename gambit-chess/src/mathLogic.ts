@@ -72,7 +72,7 @@ export function rollAllocationPoolDetailed(): { rolls: number[]; best: number } 
 
 // Combat Threshold Logic
 export function getOffense(piece: Piece): number {
-  return piece.baseOffense + piece.modOffense;
+  return piece.baseOffense + piece.modOffense + (piece.tempOffense ?? 0);
 }
 
 export function getDefense(piece: Piece): number {
