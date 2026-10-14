@@ -6,7 +6,7 @@ export default defineConfig({
   plugins: [react()],
   base: './', // Use relative paths for assets
   build: {
-    outDir: '../docs/play', // Output to docs/play for GitHub pages
+    outDir: '../play', // Output to play for GitHub pages using root
     emptyOutDir: true,
   }
 })
