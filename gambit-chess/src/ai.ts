@@ -1,5 +1,5 @@
 import type { GameState, PlayerColor } from './types';
-import { getLegalMoves, isGameOver } from './engine';
+import { getLegalMoves, isGameOver, TRAP_COST } from './engine';
 import { searchBestMove, LEVELS } from './search';
 import type { Difficulty, SearchInfo, SearchOptions, EngineMove } from './search';
 
@@ -15,7 +15,7 @@ export interface ComputerTurn {
 // weighted by the value of the piece that would be lost (Kings are immune, so they count for nothing).
 export function chooseTrapSquare(state: GameState, chance = 0.35): Pos | null {
   const me: PlayerColor = state.turn;
-  if (state.players[me].gp < 4 || Math.random() > chance) return null;
+  if (state.players[me].gp < TRAP_COST || Math.random() > chance) return null;
   const them: PlayerColor = me === 'white' ? 'black' : 'white';
   const value: Record<string, number> = { pawn: 1, knight: 3, bishop: 3, rook: 5, queen: 9, king: 0 }; // Kings are immune to traps
   // Opponent's moves, as if it were their turn (traps are hidden from them anyway)
@@ -29,7 +29,7 @@ export function chooseTrapSquare(state: GameState, chance = 0.35): Pos | null {
     const k = `${m.to.row},${m.to.col}`;
     weight.set(k, (weight.get(k) ?? 0) + value[p.type]);
   }
-  let best: Pos | null = null, bestW = 2; // only worth 4 GP if it threatens something real
+  let best: Pos | null = null, bestW = 3; // only worth the GP if it threatens something real
   for (const [k, w] of weight) {
     if (w > bestW) { bestW = w; const [r, c] = k.split(',').map(Number); best = { row: r, col: c }; }
   }
@@ -51,7 +51,7 @@ export function planComputerTurn(state: GameState, level: Difficulty): ComputerT
     // Search with the trap already on the board so the engine accounts for it
     s = structuredClone(state);
     s.board[trap.row][trap.col].trap = { owner: state.turn, hidden: true };
-    s.players[state.turn].gp -= 4;
+    s.players[state.turn].gp -= TRAP_COST;
   }
   const r = searchBestMove(s, LEVELS[level].opts);
   return { trap, move: r.move, info: r.info };

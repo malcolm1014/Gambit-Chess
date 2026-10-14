@@ -10,7 +10,7 @@ import {
 } from './mathLogic';
 import {
   createInitialState, createPiece, executeMove, placeTrap, playRally, getLegalMoves, isGameOver, isInCheck,
-  PIECE_ROLES, PIECE_VALUES, DRAW_PLIES_WITHOUT_CAPTURE,
+  PIECE_ROLES, PIECE_VALUES, DRAW_PLIES_WITHOUT_CAPTURE, TRAP_COST,
 } from './engine';
 import { diceSumPmf, bestOfPmf, ALLOCATION_DIST, percentile, headToHead, winProbability, eloExpected, eloUpdate, eloFromScore, chiSquareCdf } from './stats';
 import { Position, Searcher, ROLE_O, ROLE_D, MATE, evaluateForWhite, engineLegalMoves } from './search';
@@ -222,13 +222,14 @@ describe('Gambit Points, cards and promotion', () => {
     expect(n.players.black.gp).toBe(PIECE_VALUES.rook);
     expect(n.players.white.gp).toBe(0);
   }, SLOW);
-  it('trap costs 4 GP, Rally 2 GP (+2 Offense for one turn), Sprint 3 GP', () => {
+  it('trap costs 6 GP, Rally 2 GP (+2 Offense for one turn), Sprint 3 GP', () => {
     let s = emptyState();
     put(s, 'e1', 'king', 'white'); put(s, 'e8', 'king', 'black');
     const pawn = put(s, 'a2', 'pawn', 'white');
-    s.players.white.gp = 9;
+    s.players.white.gp = 11;
     s = placeTrap(s, sq('c3'), 'white');
     expect(s.players.white.gp).toBe(5);
+    expect(TRAP_COST).toBe(6);
     s = playRally(s, sq('a2'));
     expect(s.players.white.gp).toBe(3);
     expect(getOffense(s.board[sq('a2').row][sq('a2').col].piece!)).toBe(PIECE_ROLES.pawn.offense + 2);
@@ -269,6 +270,7 @@ describe('Exploit attempts are rejected', () => {
   const start = () => { const s = createInitialState(30, 30); s.phase = 'main'; s.players.white.gp = 20; s.players.black.gp = 20; return s; };
   const cases: [string, () => unknown][] = [
     ['trap on the enemy half', () => placeTrap(start(), sq('e5'), 'white')],
+    ['trap with only 5 GP', () => { const s = start(); s.players.white.gp = 5; return placeTrap(s, sq('e3'), 'white'); }],
     ['trap on the opponent\'s turn', () => placeTrap(start(), sq('e6'), 'black')],
     ['trap off the board', () => placeTrap(start(), { row: 9, col: 0 }, 'white')],
     ['trap during setup', () => { const s = start(); s.phase = 'allocation'; return placeTrap(s, sq('e3'), 'white'); }],
@@ -313,7 +315,7 @@ describe('Check, checkmate, stalemate and draws', () => {
   it('the King (∞ Defense) is immune to traps: the trap is used up, the King survives', () => {
     let t = emptyState();
     put(t, 'd6', 'king', 'white'); put(t, 'h8', 'king', 'black');
-    t.players.black.gp = 4; t.turn = 'black';
+    t.players.black.gp = 6; t.turn = 'black';
     t = placeTrap(t, sq('d7'), 'black');
     t.turn = 'white';
     t = executeMove(t, sq('d6'), sq('d7'));
@@ -324,7 +326,7 @@ describe('Check, checkmate, stalemate and draws', () => {
   it('any other piece that steps on an enemy trap is destroyed, and its owner gets no GP', () => {
     let t = emptyState();
     put(t, 'a1', 'king', 'white'); put(t, 'h8', 'king', 'black'); put(t, 'd2', 'rook', 'white');
-    t.players.black.gp = 4; t.turn = 'black';
+    t.players.black.gp = 6; t.turn = 'black';
     t = placeTrap(t, sq('d7'), 'black');
     t.turn = 'white';
     t = executeMove(t, sq('d2'), sq('d7'));

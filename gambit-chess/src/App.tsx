@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import type { BoardTheme } from './Piece3D';
-import { createInitialState, executeMove, placeTrap, playRally, isGameOver, getLegalMoves, PIECE_ROLES } from './engine';
+import { createInitialState, executeMove, placeTrap, playRally, isGameOver, getLegalMoves, PIECE_ROLES, TRAP_COST } from './engine';
 import { getOffense, getDefense } from './mathLogic';
 import { rollAllocationPool } from './mathLogic';
 import { useEffect } from 'react';
@@ -18,7 +18,7 @@ import './index.css';
 
 const DEFAULT_DECK: CardData[] = [
   { id: '1', name: 'Rally', cost: 2, description: 'Give one of your pieces +2 Offense for this turn.', type: 'buff' },
-  { id: '2', name: 'Pitfall', cost: 4, description: 'Place a hidden trap. Enemy unit is destroyed upon entering.', type: 'trap' },
+  { id: '2', name: 'Pitfall', cost: TRAP_COST, description: 'Place a hidden trap. Enemy unit is destroyed upon entering.', type: 'trap' },
   { id: '3', name: 'Sprint', cost: 3, description: 'Move a Pawn 2 squares forward.', type: 'movement' },
 ];
 

@@ -155,7 +155,7 @@ const PIECE_CP_EG = [0, 130, 300, 320, 540, 1000, 0, 1000];
 const PHASE_W = [0, 0, 1, 1, 2, 4, 0, 4];
 const OFF_POINT_CP = 14; // value of +1 Offense
 const DEF_POINT_CP = 16; // value of +1 Defense
-const GP_CP = 22;        // value of 1 Gambit Point (a 4 GP trap ~ a pawn)
+const GP_CP = 22;        // value of 1 Gambit Point
 
 // Logarithmic LMR table (as popularised by Stockfish / Fruit)
 const LMR = Array.from({ length: 64 }, (_, d) => Array.from({ length: 64 }, (_, m) =>

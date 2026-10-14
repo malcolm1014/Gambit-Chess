@@ -228,8 +228,8 @@ export function placeTrap(state: GameState, at: {row: number, col: number}, owne
     throw new Error("Traps can only be placed on empty squares.");
   }
 
-  // placing a trap costs 4 GP
-  if (newState.players[owner].gp < 4) {
+  // placing a trap (the Pitfall card) costs TRAP_COST GP
+  if (newState.players[owner].gp < TRAP_COST) {
     throw new Error("Not enough GP to place a trap.");
   }
 
@@ -237,7 +237,7 @@ export function placeTrap(state: GameState, at: {row: number, col: number}, owne
     owner,
     hidden: true
   };
-  newState.players[owner].gp -= 4;
+  newState.players[owner].gp -= TRAP_COST;
 
   newState.history.push(`${owner} placed a hidden trap.`);
 
@@ -246,6 +246,7 @@ export function placeTrap(state: GameState, at: {row: number, col: number}, owne
 
 // Rally card (2 GP): one of your pieces gets +2 Offense until the end of your turn.
 export const RALLY_COST = 2;
+export const TRAP_COST = 6;
 export const SPRINT_COST = 3;
 
 export function playRally(state: GameState, at: Pos): GameState {
