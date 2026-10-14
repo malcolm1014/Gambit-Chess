@@ -257,6 +257,11 @@ export function executeMove(
   const movingPiece = sourceSquare.piece!;
   const targetPiece = targetSquare.piece;
 
+  if (opts.sprint) {
+    newState.players[mover].gp -= SPRINT_COST;
+    newState.history.push(`${mover} played Sprint.`);
+  }
+
   if (targetPiece) {
     // Award GP to the losing player
     newState.players[targetPiece.color].gp += targetPiece.baseDefense;
@@ -265,11 +270,6 @@ export function executeMove(
   } else {
     newState.history.push(`${movingPiece.id} moved to ${targetSquare.id}.`);
     newState.movesSinceCapture = (newState.movesSinceCapture ?? 0) + 1;
-  }
-
-  if (opts.sprint) {
-    newState.players[mover].gp -= SPRINT_COST;
-    newState.history.push(`${mover} played Sprint.`);
   }
 
   // Move the piece

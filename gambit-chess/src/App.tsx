@@ -61,21 +61,25 @@ function App() {
     if (pendingAction?.type === 'rally') {
       try {
         setGameState(playRally(gameState, { row, col }));
+        setPendingAction(null);
       } catch (e: any) {
-        setError(e.message);
+        setError(e.message); // keep the card active so the player can pick again (or Cancel)
       }
-      setPendingAction(null);
       return;
     }
 
     if (pendingAction?.type === 'sprint') {
       try {
         const forward = gameState.turn === 'white' ? -1 : 1;
+        const piece = gameState.board[row][col].piece;
+        if (!piece || piece.color !== gameState.turn || piece.type !== 'pawn') {
+          throw new Error('Sprint: click one of your Pawns.');
+        }
         setGameState(executeMove(gameState, { row, col }, { row: row + 2 * forward, col }, { sprint: true }));
+        setPendingAction(null);
       } catch (e: any) {
-        setError(e.message);
+        setError(e.message); // keep the card active so the player can pick again (or Cancel)
       }
-      setPendingAction(null);
       setSelectedSquare(null);
       return;
     }
@@ -93,8 +97,7 @@ function App() {
          setGameState(newState);
          setPendingAction(null);
        } catch (e: any) {
-         setError(e.message);
-         setPendingAction(null);
+         setError(e.message); // keep the card active so the player can pick again (or Cancel)
        }
        return;
     }
@@ -210,7 +213,7 @@ function App() {
           {pendingAction.type === 'trap' && `Select an empty square on your side of the board to place ${pendingAction.card.name}.`}
           {pendingAction.type === 'rally' && 'Select one of your pieces to Rally (+2 Offense this turn).'}
           {pendingAction.type === 'sprint' && 'Select one of your Pawns to Sprint 2 squares forward.'}
-          {' '}<button className="cancel-button" onClick={() => setPendingAction(null)}>Cancel</button>
+          {' '}<button className="cancel-button" onClick={() => { setPendingAction(null); setError(null); }}>Cancel</button>
         </div>
       )}
 
