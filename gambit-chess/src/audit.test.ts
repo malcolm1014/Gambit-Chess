@@ -17,6 +17,8 @@ import { Position, Searcher, ROLE_O, ROLE_D, MATE, evaluateForWhite, engineLegal
 import type { GameState, PieceType, PlayerColor } from './types';
 
 // ---------- helpers ----------
+// Some audits enumerate or simulate thousands of cases; allow up to 60 s each.
+const SLOW = 60_000;
 const TYPES: PieceType[] = ['pawn', 'knight', 'bishop', 'rook', 'queen', 'king'];
 const sq = (name: string) => ({ row: 8 - Number(name[1]), col: name.charCodeAt(0) - 97 });
 
@@ -89,7 +91,7 @@ describe('Rule 30 random number generator', () => {
   it('rule table is Wolfram rule 30 (111..000 -> 0,0,0,1,1,1,1,0)', () => {
     const out = [7, 6, 5, 4, 3, 2, 1, 0].map(n => RULE30((n >> 2) & 1, (n >> 1) & 1, n & 1));
     expect(out).toEqual([0, 0, 0, 1, 1, 1, 1, 0]);
-  });
+  }, SLOW);
   it('matches an independent Rule 30 cellular automaton bit for bit', () => {
     for (const seed of [1, 12345, 987654321, 0x7fffffff]) {
       const prng = new Rule30PRNG(seed);
@@ -100,14 +102,14 @@ describe('Rule 30 random number generator', () => {
         expect(prng.next()).toBe(ref.value);
       }
     }
-  });
+  }, SLOW);
   it('a d8 roll has no modulo bias: floor(u·8) splits 2^32 values into 8 equal blocks of 2^29', () => {
     for (let face = 0; face < 8; face++) {
       const lo = face * 2 ** 29, hi = (face + 1) * 2 ** 29 - 1;
       expect(Math.floor((lo / 4294967296) * 8)).toBe(face);
       expect(Math.floor((hi / 4294967296) * 8)).toBe(face);
     }
-  });
+  }, SLOW);
   it('the two dead Rule 30 states (all 0s, all 1s) are never used as a seed', () => {
     // all ones: 2^64−1 can't be passed as a JS number exactly, so test via the
     // 64-bit wrap of −1, which BigInt.asUintN maps to all ones
@@ -117,17 +119,17 @@ describe('Rule 30 random number generator', () => {
     for (let i = 0; i < 20; i++) { ones += allOnes.next(); zs += zero.next(); }
     expect(ones).toBeGreaterThan(0);
     expect(zs).toBeGreaterThan(0);
-  });
+  }, SLOW);
   it('dice from the game generator match the exact distribution (Monte Carlo)', () => {
     const N = 60000, counts = new Array(49).fill(0);
     for (let i = 0; i < N; i++) counts[Math.max(rollDice(6, 8), rollDice(6, 8), rollDice(6, 8))]++;
     let tv = 0;
     for (let x = 0; x <= 48; x++) tv += Math.abs(counts[x] / N - ALLOCATION_DIST.pmf[x]);
     expect(tv / 2).toBeLessThan(0.02); // total variation distance
-  });
+  }, SLOW);
   it('rollDice stays within n..n·sides', () => {
     for (let i = 0; i < 2000; i++) { const r = rollDice(6, 8); expect(r).toBeGreaterThanOrEqual(6); expect(r).toBeLessThanOrEqual(48); }
-  });
+  }, SLOW);
 });
 
 describe('Dice probability formulas', () => {
@@ -136,7 +138,7 @@ describe('Dice probability formulas', () => {
     for (let i = 0; i < 8 ** 6; i++) { let x = i, s = 0; for (let d = 0; d < 6; d++) { s += (x % 8) + 1; x = Math.floor(x / 8); } counts[s]++; }
     const pmf = diceSumPmf(6, 8);
     for (let t = 0; t <= 48; t++) expect(pmf[t]).toBeCloseTo(counts[t] / 8 ** 6, 12);
-  });
+  }, SLOW);
   it('best-of-k formula F(x)^k − F(x−1)^k equals enumeration (2d4, best of 3)', () => {
     const single: number[] = [];
     for (let a = 1; a <= 4; a++) for (let b = 1; b <= 4; b++) single.push(a + b);
@@ -144,11 +146,11 @@ describe('Dice probability formulas', () => {
     for (const x of single) for (const y of single) for (const z of single) counts[Math.max(x, y, z)]++;
     const pmf = bestOfPmf(3, 2, 4);
     for (let t = 0; t <= 8; t++) expect(pmf[t]).toBeCloseTo(counts[t] / single.length ** 3, 12);
-  });
+  }, SLOW);
   it('allocation roll statistics', () => {
     expect(ALLOCATION_DIST.pmf.reduce((a, b) => a + b, 0)).toBeCloseTo(1, 12);
     expect(ALLOCATION_DIST.mean).toBeCloseTo(31.764, 2);
-  });
+  }, SLOW);
   it('percentile and head-to-head probabilities are consistent', () => {
     const pmf = ALLOCATION_DIST.pmf;
     for (const x of [14, 25, 31, 40, 48]) {
@@ -156,7 +158,7 @@ describe('Dice probability formulas', () => {
       expect(h.win + h.tie + h.lose).toBeCloseTo(1, 12);
       expect(percentile(pmf, x)).toBeCloseTo(100 * (h.win + h.tie / 2), 10);
     }
-  });
+  }, SLOW);
 });
 
 describe('Extended-real stat arithmetic (∞)', () => {
@@ -165,11 +167,11 @@ describe('Extended-real stat arithmetic (∞)', () => {
     expect(addStat(3, INFINITE, 2)).toBe(INFINITE);
     expect(addStat(2, 3, 4)).toBe(9);
     expect(formatStat(INFINITE)).toBe('∞');
-  });
+  }, SLOW);
   it('undefined forms are rejected instead of producing NaN', () => {
     expect(() => addStat(INFINITE, -INFINITE)).toThrow();
     expect(() => addStat(NaN)).toThrow();
-  });
+  }, SLOW);
   it('the King is uncapturable by rule, even by another King', () => {
     const k1 = createPiece('king', 'white', 'k1'), k2 = createPiece('king', 'black', 'k2');
     const q = createPiece('queen', 'white', 'q'); q.modOffense = 1000;
@@ -177,13 +179,13 @@ describe('Extended-real stat arithmetic (∞)', () => {
     expect(canCapture(k1, k2)).toBe(false);
     expect(canCapture(q, k2)).toBe(false);
     expect(canCapture(k1, createPiece('queen', 'black', 'q2'))).toBe(true); // ∞ ≥ any finite Defense
-  });
+  }, SLOW);
   it('King stats survive every copy the game makes (structuredClone, worker messages)', () => {
     const k = createPiece('king', 'white', 'k');
     const c = structuredClone(k);
     expect(c.baseOffense).toBe(INFINITE);
     expect(c.baseDefense).toBe(INFINITE);
-  });
+  }, SLOW);
 });
 
 describe('Role stats and Combat Threshold', () => {
@@ -193,13 +195,13 @@ describe('Role stats and Combat Threshold', () => {
       expect(p.baseOffense).toBe(PIECE_ROLES[t].offense);
       expect(p.baseDefense).toBe(PIECE_ROLES[t].defense);
     }
-  });
+  }, SLOW);
   it('search engine role tables match the rules exactly', () => {
     const order: PieceType[] = ['pawn', 'knight', 'bishop', 'rook', 'queen'];
     order.forEach((t, i) => { expect(ROLE_O[i + 1]).toBe(PIECE_ROLES[t].offense); expect(ROLE_D[i + 1]).toBe(PIECE_ROLES[t].defense); });
     expect(ROLE_O[7]).toBe(PIECE_ROLES.queen.offense);
     expect(ROLE_D[7]).toBe(PIECE_ROLES.queen.defense);
-  });
+  }, SLOW);
   it('capture iff Offense ≥ Defense (exhaustive over role pairs and modifiers 0..4)', () => {
     for (const a of TYPES) for (const d of TYPES) for (let mo = 0; mo <= 4; mo++) for (let md = 0; md <= 4; md++) {
       const A = createPiece(a, 'white', 'a'), D = createPiece(d, 'black', 'd');
@@ -208,7 +210,7 @@ describe('Role stats and Combat Threshold', () => {
       const expected = d !== 'king' && getOffense(A) >= getDefense(D);
       expect(canCapture(A, D)).toBe(expected);
     }
-  });
+  }, SLOW);
 });
 
 describe('Gambit Points, cards and promotion', () => {
@@ -219,7 +221,7 @@ describe('Gambit Points, cards and promotion', () => {
     const n = executeMove(s, sq('d4'), sq('d7'));
     expect(n.players.black.gp).toBe(PIECE_VALUES.rook);
     expect(n.players.white.gp).toBe(0);
-  });
+  }, SLOW);
   it('trap costs 4 GP, Rally 2 GP (+2 Offense for one turn), Sprint 3 GP', () => {
     let s = emptyState();
     put(s, 'e1', 'king', 'white'); put(s, 'e8', 'king', 'black');
@@ -235,7 +237,7 @@ describe('Gambit Points, cards and promotion', () => {
     const moved = s.board[sq('a4').row][sq('a4').col].piece!;
     expect(moved.id).toBe(pawn.id);
     expect(moved.tempOffense).toBe(undefined); // Rally expired after the move
-  });
+  }, SLOW);
   it('promotion: role base becomes the Commander\'s, dice modifiers are kept', () => {
     const s = emptyState();
     put(s, 'h1', 'king', 'white'); put(s, 'a8', 'king', 'black');
@@ -245,7 +247,7 @@ describe('Gambit Points, cards and promotion', () => {
     expect(q.type).toBe('queen');
     expect(getOffense(q)).toBe(PIECE_ROLES.queen.offense + 3);
     expect(getDefense(q)).toBe(PIECE_ROLES.queen.defense + 2);
-  });
+  }, SLOW);
   it('Gambit Points never go negative over random games', () => {
     for (let g = 0; g < 10; g++) {
       let s = randomAllocatedGame();
@@ -260,7 +262,7 @@ describe('Gambit Points, cards and promotion', () => {
         }
       }
     }
-  });
+  }, SLOW);
 });
 
 describe('Check, checkmate, stalemate and draws', () => {
@@ -270,21 +272,21 @@ describe('Check, checkmate, stalemate and draws', () => {
     const n = executeMove(s, sq('g1'), sq('g7'));
     expect(n.status).toBe('checkmate');
     expect(n.winner).toBe('white');
-  });
+  }, SLOW);
   it('detects stalemate (no legal move, not in check)', () => {
     const s = emptyState();
     put(s, 'h1', 'king', 'white'); put(s, 'b5', 'queen', 'white'); put(s, 'a8', 'king', 'black');
     const n = executeMove(s, sq('b5'), sq('b6'));
     expect(n.status).toBe('stalemate');
     expect(n.winner).toBe(null);
-  });
+  }, SLOW);
   it('a pinned piece cannot move, and you cannot move into check', () => {
     const s = emptyState();
     put(s, 'e1', 'king', 'white'); put(s, 'e2', 'rook', 'white'); put(s, 'e8', 'rook', 'black'); put(s, 'a8', 'king', 'black');
     expect(() => executeMove(s, sq('e2'), sq('d2'))).toThrow();
     expect(() => executeMove(s, sq('e1'), sq('d2'))).not.toThrow();
     expect(isInCheck(s.board, 'white')).toBe(false);
-  });
+  }, SLOW);
   it('a King that steps on an enemy trap is destroyed and that side loses', () => {
     let t = emptyState();
     put(t, 'd6', 'king', 'white'); put(t, 'h8', 'king', 'black');
@@ -294,7 +296,7 @@ describe('Check, checkmate, stalemate and draws', () => {
     t = executeMove(t, sq('d6'), sq('d7'));
     expect(t.status).toBe('king-destroyed');
     expect(t.winner).toBe('black');
-  });
+  }, SLOW);
   it(`draw after ${DRAW_PLIES_WITHOUT_CAPTURE} plies without a capture`, () => {
     let s = emptyState();
     put(s, 'a1', 'king', 'white'); put(s, 'h8', 'king', 'black');
@@ -303,7 +305,7 @@ describe('Check, checkmate, stalemate and draws', () => {
     const mv = getLegalMoves(s).find(m => s.board[m.to.row][m.to.col].piece === null)!;
     s = executeMove(s, mv.from, mv.to);
     expect(s.status).toBe('draw');
-  });
+  }, SLOW);
 });
 
 describe('Rating and win-probability formulas', () => {
@@ -313,20 +315,20 @@ describe('Rating and win-probability formulas', () => {
       expect(eloFromScore(eloExpected(a, b))).toBeCloseTo(a - b, 6);
     }
     expect(eloExpected(1800, 1400)).toBeCloseTo(10 / 11, 12); // 1/(1+10^-1)
-  });
+  }, SLOW);
   it('Elo update matches R′ = R + K(S − E)', () => {
     expect(eloUpdate(1200, 1400, 1, 0)).toBe(Math.round(1200 + 40 * (1 - eloExpected(1200, 1400))));
     expect(eloUpdate(1500, 1500, 0.5, 50)).toBe(1500);
-  });
+  }, SLOW);
   it('win probability uses the same logistic curve as Elo', () => {
     for (const cp of [-400, -50, 0, 120, 800]) expect(winProbability(cp)).toBeCloseTo(eloExpected(cp, 0), 12);
-  });
+  }, SLOW);
   it('chi-square CDF matches closed forms and table values', () => {
     for (const x of [0.5, 1, 3, 7]) expect(chiSquareCdf(x, 2)).toBeCloseTo(1 - Math.exp(-x / 2), 10); // df=2 closed form
     expect(chiSquareCdf(3.841459, 1)).toBeCloseTo(0.95, 5);
     expect(chiSquareCdf(14.06714, 7)).toBeCloseTo(0.95, 5);
     expect(chiSquareCdf(20.27774, 7)).toBeCloseTo(0.995, 5);
-  });
+  }, SLOW);
 });
 
 describe('Search engine correctness', () => {
@@ -342,7 +344,7 @@ describe('Search engine correctness', () => {
         s = executeMove(s, x.from, x.to);
       }
     }
-  });
+  }, SLOW);
   it('evaluation is colour-symmetric: eval(position) = −eval(mirrored position)', () => {
     for (let g = 0; g < 6; g++) {
       let s = randomAllocatedGame();
@@ -352,7 +354,7 @@ describe('Search engine correctness', () => {
         s = executeMove(s, x.from, x.to);
       }
     }
-  });
+  }, SLOW);
   it('incremental Zobrist hash equals a full recomputation after every move', () => {
     const s = randomAllocatedGame();
     const pos = Position.fromGameState(s, 'white');
@@ -364,7 +366,7 @@ describe('Search engine correctness', () => {
       expect(pos.hashLo).toBe(lo); expect(pos.hashHi).toBe(hi);
       pos.unmake();
     }
-  });
+  }, SLOW);
   it('finds a forced mate in one and scores it as mate', () => {
     const s = emptyState();
     put(s, 'f6', 'king', 'white'); put(s, 'g1', 'queen', 'white'); put(s, 'h8', 'king', 'black');
@@ -372,5 +374,5 @@ describe('Search engine correctness', () => {
     expect(r.info.scoreCp).toBe(MATE - 1);
     expect(r.info.mateIn).toBe(1);
     expect(r.move?.to).toEqual(sq('g7'));
-  });
+  }, SLOW);
 });
