@@ -30,7 +30,10 @@ import type { GameState, PlayerColor } from './types';
 // Positive = white, negative = black. 7 = a Queen that was promoted from a Pawn
 // (it keeps the Pawn's allocated modifiers, so it gets its own hash code).
 export const EMPTY = 0, P = 1, N = 2, B = 3, R = 4, Q = 5, K = 6, PQ = 7;
-const BASE_VALUE = [0, 1, 3, 3, 5, 9, 0, 9];
+const BASE_VALUE = [0, 1, 3, 3, 5, 9, 0, 9];           // chess value (GP, capture ordering)
+// Role-based built-in stats (must match PIECE_ROLES in engine.ts)
+const ROLE_O = [0, 2, 4, 3, 5, 9, 0, 9];
+const ROLE_D = [0, 1, 3, 4, 6, 7, 0, 7];
 const TYPE_NAME = ['', 'pawn', 'knight', 'bishop', 'rook', 'queen', 'king', 'queen'];
 
 export const MATE = 100000;
@@ -357,7 +360,7 @@ export class Position {
     let code = moved, off = this.off[from], def = this.def[from];
     const toRow = to >> 3;
     if (Math.abs(moved) === P && (toRow === 0 || toRow === 7)) {
-      code = PQ * us; off = off - 1 + 9; def = def - 1 + 9; // promotion keeps the pawn's modifiers
+      code = PQ * us; off = off - ROLE_O[P] + ROLE_O[Q]; def = def - ROLE_D[P] + ROLE_D[Q]; // keeps the pawn's modifiers
     }
     b[from] = 0; this.off[from] = 0; this.def[from] = 0;
     b[to] = code; this.off[to] = off; this.def[to] = def;
@@ -432,6 +435,7 @@ export class Position {
 
       if (t !== K) {
         const base = BASE_VALUE[t];
+        // Value of the piece's stats relative to a standard piece of its value
         const bonus = (this.off[s] - base) * OFF_POINT_CP + (this.def[s] - base) * DEF_POINT_CP;
         vmg += bonus; veg += bonus;
         // Untouchable: nothing the enemy owns can ever beat this piece's Defense

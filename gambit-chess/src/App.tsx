@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import type { BoardTheme } from './Piece3D';
-import { createInitialState, executeMove, placeTrap, playRally, isGameOver, getLegalMoves } from './engine';
+import { createInitialState, executeMove, placeTrap, playRally, isGameOver, getLegalMoves, PIECE_ROLES } from './engine';
 import { getOffense, getDefense } from './mathLogic';
 import { rollAllocationPool } from './mathLogic';
 import { useEffect } from 'react';
@@ -372,11 +372,12 @@ function App() {
                   <div className="unit-name">
                     <span className={`unit-icon ${selectedPiece.color}`}>{PIECE_ICON[selectedPiece.type] + '\uFE0E'}</span>
                     {cap(selectedPiece.type)}
+                    <span className="role-chip">{PIECE_ROLES[selectedPiece.type].title}</span>
                     {selectedPiece.tempOffense ? <span className="rally-tag">Rallied</span> : null}
                   </div>
                   <div className="stat-line"><span>⚔ Offense</span><strong>{fmt(getOffense(selectedPiece))}</strong></div>
                   <div className="stat-line"><span>🛡 Defense</span><strong>{fmt(getDefense(selectedPiece))}</strong></div>
-                  <div className="stat-note">Base {fmt(selectedPiece.baseOffense)} + {selectedPiece.modOffense}{selectedPiece.tempOffense ? ` + ${selectedPiece.tempOffense} rally` : ''} / Base {fmt(selectedPiece.baseDefense)} + {selectedPiece.modDefense}</div>
+                  <div className="stat-note">Role base {fmt(selectedPiece.baseOffense)} + dice {selectedPiece.modOffense}{selectedPiece.tempOffense ? ` + ${selectedPiece.tempOffense} rally` : ''} / Role base {fmt(selectedPiece.baseDefense)} + dice {selectedPiece.modDefense}</div>
                   <div className="stat-note">{legalTargets.length} legal move{legalTargets.length === 1 ? '' : 's'}</div>
                 </>
               ) : (

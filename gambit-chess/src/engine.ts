@@ -2,13 +2,27 @@ import type { GameState, Piece, PieceType, PlayerColor, Square } from './types';
 import { canCapture, getOffense, getDefense } from './mathLogic';
 import { isValidChessMove } from './movementLogic';
 
-const PIECE_VALUES: Record<PieceType, number> = {
+// Traditional chess value of each piece. Used for Gambit Points: when a piece is
+// captured, its owner gains GP equal to this value.
+export const PIECE_VALUES: Record<PieceType, number> = {
   pawn: 1,
   knight: 3,
   bishop: 3,
   rook: 5,
   queen: 9,
-  king: Infinity // Or a very high number
+  king: Infinity
+};
+
+// Each piece's built-in Offense/Defense comes from who it is on the battlefield.
+// Dice points from the Allocation Phase are added on top of these.
+export interface PieceRole { title: string; offense: number; defense: number; blurb: string }
+export const PIECE_ROLES: Record<PieceType, PieceRole> = {
+  pawn:   { title: 'Spearman',    offense: 2,        defense: 1,        blurb: 'Expendable front line that strikes first but breaks easily' },
+  knight: { title: 'Cavalry',     offense: 4,        defense: 3,        blurb: 'Hard-hitting raider that leaps into the fight' },
+  bishop: { title: 'Warden',      offense: 3,        defense: 4,        blurb: 'Long-range support protected by its wards' },
+  rook:   { title: 'Siege Tower', offense: 5,        defense: 6,        blurb: 'Heavy fortress that is hard to bring down' },
+  queen:  { title: 'Commander',   offense: 9,        defense: 7,         blurb: 'The deadliest attacker on the board' },
+  king:   { title: 'Sovereign',   offense: Infinity, defense: Infinity, blurb: 'Can never be captured — only checkmated' },
 };
 
 export function createPiece(type: PieceType, color: PlayerColor, id: string): Piece {
@@ -16,8 +30,8 @@ export function createPiece(type: PieceType, color: PlayerColor, id: string): Pi
     id,
     type,
     color,
-    baseOffense: PIECE_VALUES[type],
-    baseDefense: PIECE_VALUES[type],
+    baseOffense: PIECE_ROLES[type].offense,
+    baseDefense: PIECE_ROLES[type].defense,
     modOffense: 0,
     modDefense: 0
   };
@@ -264,8 +278,9 @@ export function executeMove(
 
   if (targetPiece) {
     // Award GP to the losing player
-    newState.players[targetPiece.color].gp += targetPiece.baseDefense;
-    newState.history.push(`${movingPiece.id} captured ${targetPiece.id}. ${targetPiece.color} gained ${targetPiece.baseDefense} GP.`);
+    const gpGain = PIECE_VALUES[targetPiece.type];
+    newState.players[targetPiece.color].gp += gpGain;
+    newState.history.push(`${movingPiece.id} captured ${targetPiece.id}. ${targetPiece.color} gained ${gpGain} GP.`);
     newState.movesSinceCapture = 0;
   } else {
     newState.history.push(`${movingPiece.id} moved to ${targetSquare.id}.`);
@@ -284,8 +299,8 @@ export function executeMove(
   // Pawn promotion: a pawn reaching the far rank becomes a Queen (keeps its allocated modifiers)
   if (movingPiece.type === 'pawn' && (targetSquare.rank === 8 || targetSquare.rank === 1)) {
     movingPiece.type = 'queen';
-    movingPiece.baseOffense = PIECE_VALUES.queen;
-    movingPiece.baseDefense = PIECE_VALUES.queen;
+    movingPiece.baseOffense = PIECE_ROLES.queen.offense;
+    movingPiece.baseDefense = PIECE_ROLES.queen.defense;
     newState.history.push(`${movingPiece.id} was promoted to a Queen!`);
   }
 

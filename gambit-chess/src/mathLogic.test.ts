@@ -41,9 +41,9 @@ describe('mathLogic', () => {
 
   it('getOffense should return base + mod', () => {
     const piece = createPiece('pawn', 'white', 'p1');
-    expect(piece.baseOffense).toBe(1);
+    expect(piece.baseOffense).toBe(2); // Spearman role
     piece.modOffense = 2;
-    expect(getOffense(piece)).toBe(3);
+    expect(getOffense(piece)).toBe(4);
   });
 
   it('getDefense should return base + mod', () => {
@@ -54,11 +54,11 @@ describe('mathLogic', () => {
   });
 
   it('canCapture should be true when offense >= defense', () => {
-    const attacker = createPiece('queen', 'white', 'q1'); // base 9
-    const defender = createPiece('rook', 'black', 'r1');  // base 5
+    const attacker = createPiece('queen', 'white', 'q1'); // Commander: Offense 9
+    const defender = createPiece('rook', 'black', 'r1');  // Siege Tower: Defense 6
     expect(canCapture(attacker, defender)).toBe(true);
 
-    defender.modDefense = 5; // total defense 10
+    defender.modDefense = 4; // total defense 10
     expect(canCapture(attacker, defender)).toBe(false);
 
     attacker.modOffense = 1; // total offense 10

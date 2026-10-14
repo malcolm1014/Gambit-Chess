@@ -549,3 +549,9 @@ body[data-theme="classic"] .board-container { background: #1b130d; }
 body[data-theme="classic"] .gambit-card { background: linear-gradient(180deg, #3a2a1d, #241910); }
 body[data-theme="classic"] .card-art { background: radial-gradient(circle at 50% 60%, color-mix(in srgb, var(--card-glow) 16%, transparent), transparent 70%), #1d140d; }
 body[data-theme="classic"] .dice-roll { background: linear-gradient(135deg, #4a3624, #2a1d13); }
+
+/* Piece roles */
+.role-title { font-family: var(--head); color: var(--parchment); font-size: 0.9rem; margin-top: 2px; }
+.role-blurb { color: var(--muted); font-size: 0.78rem; line-height: 1.25; margin: 4px 0 6px; min-height: 2.5em; }
+.role-total { font-weight: 700; color: var(--gold-hi); white-space: pre; }
+.role-chip { font-family: var(--body); font-size: 0.75rem; border: 1px solid var(--gold); color: var(--gold-hi); border-radius: 999px; padding: 1px 8px; }

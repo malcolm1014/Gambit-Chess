@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { GameState, PlayerColor, PieceType } from './types';
 import { rollAllocationPoolDetailed } from './mathLogic';
+import { PIECE_ROLES } from './engine';
 import { ALLOCATION_DIST, percentile, headToHead } from './stats';
 import { LEVELS } from './search';
 import type { Difficulty } from './search';
@@ -18,6 +19,7 @@ interface IntroScreenProps {
 }
 
 const PIECE_TYPES: PieceType[] = ['pawn', 'knight', 'bishop', 'rook', 'queen', 'king'];
+const fmtStat = (n: number) => (n === Infinity ? '∞' : String(n));
 
 const emptyAllocation = (): AllocationState => ({
   pawn: { modOffense: 0, modDefense: 0 },
@@ -134,10 +136,10 @@ export function IntroScreen({ onCompleteAllocation }: IntroScreenProps) {
         </p>
         <h3>Core Mechanics</h3>
         <ul>
-          <li><strong>Base Stats:</strong> Pieces have base Offense (O) and Defense (D) equal to their traditional values (Pawn=1, Knight/Bishop=3, Rook=5, Queen=9, King=Inf).</li>
+          <li><strong>Base Stats by Role:</strong> Every piece starts with Offense (O) and Defense (D) that fit who it is: Pawn <em>Spearman</em> 2/1, Knight <em>Cavalry</em> 4/3, Bishop <em>Warden</em> 3/4, Rook <em>Siege Tower</em> 5/6, Queen <em>Commander</em> 9/7, King <em>Sovereign</em> ∞/∞. Your dice points are added on top.</li>
           <li><strong>Combat Threshold:</strong> You can <em>only</em> execute a legal capture if the attacking piece's Total Offense (Base + Modifiers) is &ge; the defending piece's Total Defense.</li>
           <li><strong>Allocation Phase:</strong> At the start of the game, a Wolfram Rule 30 pseudo-random algorithm rolls a dice pool (3x 6d8). You must secretly allocate these points to modify your pieces' Offense or Defense before the first move.</li>
-          <li><strong>Gambit Points (GP):</strong> When your piece is captured, you gain GP equal to its base value.</li>
+          <li><strong>Gambit Points (GP):</strong> When your piece is captured, you gain GP equal to its chess value (Pawn 1, Knight/Bishop 3, Rook 5, Queen 9).</li>
           <li><strong>Cards & Traps:</strong> Spend GP to play powerful cards or place hidden traps on your side of the board. Enemy pieces are destroyed upon stepping on your traps!</li>
         </ul>
       </div>
@@ -210,15 +212,21 @@ export function IntroScreen({ onCompleteAllocation }: IntroScreenProps) {
               {PIECE_TYPES.map(pieceType => (
                 <div key={pieceType} className="allocation-item">
                   <strong>{pieceType.toUpperCase()}</strong>
+                  <div className="role-title">{PIECE_ROLES[pieceType].title}</div>
+                  <div className="role-blurb">{PIECE_ROLES[pieceType].blurb}</div>
+                  <div className="role-total">
+                    ⚔ {fmtStat(PIECE_ROLES[pieceType].offense + currentAllocations[pieceType].modOffense)}
+                    {'  '}🛡 {fmtStat(PIECE_ROLES[pieceType].defense + currentAllocations[pieceType].modDefense)}
+                  </div>
                   <div className="stat-row">
-                    <small>⚔ +Offense: {currentAllocations[pieceType].modOffense}</small>
+                    <small>⚔ Offense: base {fmtStat(PIECE_ROLES[pieceType].offense)} + {currentAllocations[pieceType].modOffense}</small>
                     <div className="allocation-controls">
                       <button onClick={() => handleAllocate(pieceType, 'modOffense', -1)} disabled={currentAllocations[pieceType].modOffense === 0}>-</button>
                       <button onClick={() => handleAllocate(pieceType, 'modOffense', 1)} disabled={pointsRemaining === 0}>+</button>
                     </div>
                   </div>
                   <div className="stat-row">
-                    <small>🛡 +Defense: {currentAllocations[pieceType].modDefense}</small>
+                    <small>🛡 Defense: base {fmtStat(PIECE_ROLES[pieceType].defense)} + {currentAllocations[pieceType].modDefense}</small>
                     <div className="allocation-controls">
                       <button onClick={() => handleAllocate(pieceType, 'modDefense', -1)} disabled={currentAllocations[pieceType].modDefense === 0}>-</button>
                       <button onClick={() => handleAllocate(pieceType, 'modDefense', 1)} disabled={pointsRemaining === 0}>+</button>
