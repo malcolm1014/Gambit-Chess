@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import type { BoardTheme } from './Piece3D';
 import { createInitialState, executeMove, placeTrap, playRally, isGameOver, getLegalMoves } from './engine';
 import { getOffense, getDefense } from './mathLogic';
 import { rollAllocationPool } from './mathLogic';
@@ -34,6 +35,11 @@ function loadRating(): Rating {
 }
 function saveRating(r: Rating) { try { localStorage.setItem(RATING_KEY, JSON.stringify(r)); } catch { /* ignore */ } }
 
+const THEME_KEY = 'gambit-chess-theme';
+function loadTheme(): BoardTheme {
+  try { return localStorage.getItem(THEME_KEY) === 'fantasy' ? 'fantasy' : 'classic'; } catch { return 'classic'; }
+}
+
 // The search runs in a Web Worker so the board stays smooth while it thinks
 function makeWorker(): Worker | null {
   try { return new Worker(new URL('./search.worker.ts', import.meta.url), { type: 'module' }); } catch { return null; }
@@ -56,6 +62,10 @@ function App() {
   const [evalWhite, setEvalWhite] = useState<{ cp: number; mate: number | null } | null>(null);
   const [rating, setRating] = useState<Rating>(loadRating);
   const [ratingDelta, setRatingDelta] = useState<number | null>(null);
+  const [theme, setThemeState] = useState<BoardTheme>(loadTheme);
+  const setTheme = (t: BoardTheme) => { setThemeState(t); try { localStorage.setItem(THEME_KEY, t); } catch { /* ignore */ } };
+  useEffect(() => { document.body.dataset.theme = theme; }, [theme]);
+  const sideName = (c: 'white' | 'black') => theme === 'classic' ? (c === 'white' ? '♔ White' : '♚ Black') : (c === 'white' ? '☀ Light' : '☾ Shadow');
   const workerRef = useRef<Worker | null>(null);
   const requestId = useRef(0);
   const ratedGame = useRef(false);
@@ -255,142 +265,158 @@ function App() {
     <div className="app-container">
       <header className="game-header">
         <h1>Gambit Chess</h1>
-        <button className="new-game-button" onClick={handleNewGame}>⟲ New Game</button>
+        <div className="header-actions">
+          <div className="theme-toggle" role="group" aria-label="Board style">
+            <button className={theme === 'classic' ? 'on' : ''} onClick={() => setTheme('classic')}>Classic</button>
+            <button className={theme === 'fantasy' ? 'on' : ''} onClick={() => setTheme('fantasy')}>Fantasy</button>
+          </div>
+          <button className="new-game-button" onClick={handleNewGame}>⟲ New Game</button>
+        </div>
       </header>
 
-      <div className="stats">
-        {(['white', 'black'] as const).map(color => (
-          <div key={color} className={`player-stat side-${color} ${gameState.turn === color && !gameOver ? 'active' : ''}`}>
-            <span className="side-name">
-              {color === 'white' ? '☀ Light' : '☾ Shadow'}
-              <small>{color === 'white' ? 'White' : 'Black'}{gameMode === 'pvc' ? (color === 'white' ? ' · You' : ' · Computer') : ''}</small>
-            </span>
-            <span className="gp" title="Gambit Points"><span className="coin" />{gameState.players[color].gp} GP</span>
-          </div>
-        ))}
-      </div>
-
-      {gameOver && (
-        <div className="game-over">
-          <strong>
-            {gameState.status === 'checkmate' && `Checkmate! ${cap(gameState.winner)} wins.`}
-            {gameState.status === 'king-destroyed' && `${cap(gameState.winner)} wins — the enemy King hit a trap!`}
-            {gameState.status === 'stalemate' && 'Stalemate — the game is a draw.'}
-            {gameState.status === 'draw' && 'Draw — 50 moves each without a capture.'}
-          </strong>
-          {gameMode === 'pvc' && ratingDelta !== null && (
-            <span className="rating-change">
-              Your rating: {rating.rating} ({ratingDelta >= 0 ? '+' : ''}{ratingDelta}) vs {LEVELS[difficulty].label}
-            </span>
+      <div className="game-layout">
+        <div className="board-column">
+          {gameOver && (
+            <div className="game-over">
+              <strong>
+                {gameState.status === 'checkmate' && `Checkmate! ${cap(gameState.winner)} wins.`}
+                {gameState.status === 'king-destroyed' && `${cap(gameState.winner)} wins — the enemy King hit a trap!`}
+                {gameState.status === 'stalemate' && 'Stalemate — the game is a draw.'}
+                {gameState.status === 'draw' && 'Draw — 50 moves each without a capture.'}
+              </strong>
+              {gameMode === 'pvc' && ratingDelta !== null && (
+                <span className="rating-change">
+                  Your rating: {rating.rating} ({ratingDelta >= 0 ? '+' : ''}{ratingDelta}) vs {LEVELS[difficulty].label}
+                </span>
+              )}
+              <button onClick={handleNewGame}>Play Again</button>
+            </div>
           )}
-          <button onClick={handleNewGame}>Play Again</button>
-        </div>
-      )}
-      {!gameOver && (
-        <div className="turn-indicator">
-          {isComputerTurn ? 'Computer is thinking…' : `${cap(gameState.turn)} to move`}
-          {gameState.inCheck && <span className="check-badge">{cap(gameState.inCheck)} is in CHECK</span>}
-        </div>
-      )}
-      {gameMode === 'pvc' && evalWhite && (() => {
-        const p = evalWhite.mate !== null ? (evalWhite.mate > 0 ? 1 : 0) : winProbability(evalWhite.cp);
-        return (
-          <div className="eval-bar" title="Win probability from the engine's evaluation: 1 / (1 + 10^(−eval/400))">
-            <div className="eval-fill" style={{ width: `${(p * 100).toFixed(1)}%` }} />
-            <span className="eval-label light">☀ {(p * 100).toFixed(0)}%</span>
-            <span className="eval-label mid">{fmtScore(evalWhite.cp, evalWhite.mate)}</span>
-            <span className="eval-label shadow">{((1 - p) * 100).toFixed(0)}% ☾</span>
+          {!gameOver && (
+            <div className="turn-indicator">
+              {isComputerTurn ? 'Computer is thinking…' : `${cap(gameState.turn)} to move`}
+              {gameState.inCheck && <span className="check-badge">{cap(gameState.inCheck)} is in CHECK</span>}
+            </div>
+          )}
+          {error && <div className="error">{error}</div>}
+          {pendingAction && (
+            <div className="status-message">
+              {pendingAction.type === 'trap' && `Select an empty square on your side of the board to place ${pendingAction.card.name}.`}
+              {pendingAction.type === 'rally' && 'Select one of your pieces to Rally (+2 Offense this turn).'}
+              {pendingAction.type === 'sprint' && 'Select one of your Pawns to Sprint 2 squares forward.'}
+              {' '}<button className="cancel-button" onClick={() => { setPendingAction(null); setError(null); }}>Cancel</button>
+            </div>
+          )}
+
+          <Board3D
+            gameState={gameState}
+            onSquareClick={handleSquareClick}
+            selectedSquare={selectedSquare}
+            legalTargets={legalTargets}
+            trapViewer={gameMode === 'pvc' ? 'white' : (isComputerTurn ? null : gameState.turn)}
+            theme={theme}
+          />
+
+          <div className="cards-container">
+            {DEFAULT_DECK.map(card => {
+               const currentPlayer = gameState.players[gameState.turn];
+               return (
+                 <GambitCard
+                   key={card.id}
+                   card={card}
+                   canAfford={!gameOver && !isComputerTurn && currentPlayer.gp >= card.cost}
+                   active={pendingAction?.card.id === card.id}
+                   onPlay={(c) => {
+                     setError(null);
+                     setSelectedSquare(null);
+                     if (c.id === '1') setPendingAction({ type: 'rally', card: c });
+                     else if (c.id === '2') setPendingAction({ type: 'trap', card: c });
+                     else if (c.id === '3') setPendingAction({ type: 'sprint', card: c });
+                   }}
+                 />
+               );
+            })}
           </div>
-        );
-      })()}
-      {error && <div className="error">{error}</div>}
-      {pendingAction && (
-        <div className="status-message">
-          {pendingAction.type === 'trap' && `Select an empty square on your side of the board to place ${pendingAction.card.name}.`}
-          {pendingAction.type === 'rally' && 'Select one of your pieces to Rally (+2 Offense this turn).'}
-          {pendingAction.type === 'sprint' && 'Select one of your Pawns to Sprint 2 squares forward.'}
-          {' '}<button className="cancel-button" onClick={() => { setPendingAction(null); setError(null); }}>Cancel</button>
+
         </div>
-      )}
 
-      <Board3D
-        gameState={gameState}
-        onSquareClick={handleSquareClick}
-        selectedSquare={selectedSquare}
-        legalTargets={legalTargets}
-        trapViewer={gameMode === 'pvc' ? 'white' : (isComputerTurn ? null : gameState.turn)}
-      />
-
-      <div className="info-row">
-        <div className="stat-block">
-          <h3>Unit</h3>
-          {selectedPiece ? (
-            <>
-              <div className="unit-name">
-                <span className={`unit-icon ${selectedPiece.color}`}>{PIECE_ICON[selectedPiece.type] + '\uFE0E'}</span>
-                {cap(selectedPiece.type)}
-                {selectedPiece.tempOffense ? <span className="rally-tag">Rallied</span> : null}
+        <aside className="side-column">
+          <div className="stats">
+            {(['white', 'black'] as const).map(color => (
+              <div key={color} className={`player-stat side-${color} ${gameState.turn === color && !gameOver ? 'active' : ''}`}>
+                <span className="side-name">
+                  {sideName(color)}
+                  <small>{color === 'white' ? 'White' : 'Black'}{gameMode === 'pvc' ? (color === 'white' ? ' · You' : ' · Computer') : ''}</small>
+                </span>
+                <span className="gp" title="Gambit Points"><span className="coin" />{gameState.players[color].gp} GP</span>
               </div>
-              <div className="stat-line"><span>⚔ Offense</span><strong>{fmt(getOffense(selectedPiece))}</strong></div>
-              <div className="stat-line"><span>🛡 Defense</span><strong>{fmt(getDefense(selectedPiece))}</strong></div>
-              <div className="stat-note">Base {fmt(selectedPiece.baseOffense)} + {selectedPiece.modOffense}{selectedPiece.tempOffense ? ` + ${selectedPiece.tempOffense} rally` : ''} / Base {fmt(selectedPiece.baseDefense)} + {selectedPiece.modDefense}</div>
-              <div className="stat-note">{legalTargets.length} legal move{legalTargets.length === 1 ? '' : 's'}</div>
-            </>
-          ) : (
-            <p className="stat-note">Select one of your pieces to see its stats and legal moves.</p>
-          )}
-        </div>
-
-        <div className="history-panel">
-          <h3>Chronicle</h3>
-          <div className="history" ref={el => { if (el) el.scrollTop = el.scrollHeight; }}>
-            {gameState.history.map((msg: string, idx: number) => (
-              <div key={idx}>{msg}</div>
             ))}
-            {gameState.history.length === 0 && <div>The battle begins. Light moves first…</div>}
           </div>
-        </div>
-      </div>
 
-      {gameMode === 'pvc' && (
-        <div className="oracle-panel">
-          <h3>Oracle <small>— {LEVELS[difficulty].label} engine · your rating {rating.rating}{rating.games ? ` (${rating.games} game${rating.games === 1 ? '' : 's'})` : ''}</small></h3>
-          {engineInfo ? (
-            <>
-              <div className="oracle-stats">
-                <span>Depth <b>{engineInfo.depth}</b>/{engineInfo.seldepth}</span>
-                <span>Nodes <b>{engineInfo.nodes.toLocaleString()}</b></span>
-                <span>Speed <b>{(engineInfo.nps / 1000).toFixed(0)}k</b>/s</span>
-                <span>Time <b>{(engineInfo.timeMs / 1000).toFixed(2)}s</b></span>
-                <span>Eval <b>{evalWhite ? fmtScore(evalWhite.cp, evalWhite.mate) : '—'}</b> (Light)</span>
+          {gameMode === 'pvc' && evalWhite && (() => {
+            const p = evalWhite.mate !== null ? (evalWhite.mate > 0 ? 1 : 0) : winProbability(evalWhite.cp);
+            return (
+              <div className="eval-bar" title="Win probability from the engine's evaluation: 1 / (1 + 10^(−eval/400))">
+                <div className="eval-fill" style={{ width: `${(p * 100).toFixed(1)}%` }} />
+                <span className="eval-label light">☀ {(p * 100).toFixed(0)}%</span>
+                <span className="eval-label mid">{fmtScore(evalWhite.cp, evalWhite.mate)}</span>
+                <span className="eval-label shadow">{((1 - p) * 100).toFixed(0)}% ☾</span>
               </div>
-              <div className="oracle-pv">Expected line: {engineInfo.pv.slice(0, 8).join('  ') || '—'}</div>
-            </>
-          ) : (
-            <p className="stat-note">The engine reports its search after its first move.</p>
-          )}
-        </div>
-      )}
+            );
+          })()}
+          <div className="info-row">
+            <div className="stat-block">
+              <h3>Unit</h3>
+              {selectedPiece ? (
+                <>
+                  <div className="unit-name">
+                    <span className={`unit-icon ${selectedPiece.color}`}>{PIECE_ICON[selectedPiece.type] + '\uFE0E'}</span>
+                    {cap(selectedPiece.type)}
+                    {selectedPiece.tempOffense ? <span className="rally-tag">Rallied</span> : null}
+                  </div>
+                  <div className="stat-line"><span>⚔ Offense</span><strong>{fmt(getOffense(selectedPiece))}</strong></div>
+                  <div className="stat-line"><span>🛡 Defense</span><strong>{fmt(getDefense(selectedPiece))}</strong></div>
+                  <div className="stat-note">Base {fmt(selectedPiece.baseOffense)} + {selectedPiece.modOffense}{selectedPiece.tempOffense ? ` + ${selectedPiece.tempOffense} rally` : ''} / Base {fmt(selectedPiece.baseDefense)} + {selectedPiece.modDefense}</div>
+                  <div className="stat-note">{legalTargets.length} legal move{legalTargets.length === 1 ? '' : 's'}</div>
+                </>
+              ) : (
+                <p className="stat-note">Select one of your pieces to see its stats and legal moves.</p>
+              )}
+            </div>
 
-      <div className="cards-container">
-        {DEFAULT_DECK.map(card => {
-           const currentPlayer = gameState.players[gameState.turn];
-           return (
-             <GambitCard
-               key={card.id}
-               card={card}
-               canAfford={!gameOver && !isComputerTurn && currentPlayer.gp >= card.cost}
-               active={pendingAction?.card.id === card.id}
-               onPlay={(c) => {
-                 setError(null);
-                 setSelectedSquare(null);
-                 if (c.id === '1') setPendingAction({ type: 'rally', card: c });
-                 else if (c.id === '2') setPendingAction({ type: 'trap', card: c });
-                 else if (c.id === '3') setPendingAction({ type: 'sprint', card: c });
-               }}
-             />
-           );
-        })}
+            <div className="history-panel">
+              <h3>Chronicle</h3>
+              <div className="history" ref={el => { if (el) el.scrollTop = el.scrollHeight; }}>
+                {gameState.history.map((msg: string, idx: number) => (
+                  <div key={idx}>{msg}</div>
+                ))}
+                {gameState.history.length === 0 && <div>The battle begins. Light moves first…</div>}
+              </div>
+            </div>
+          </div>
+
+          {gameMode === 'pvc' && (
+            <div className="oracle-panel">
+              <h3>Oracle <small>— {LEVELS[difficulty].label} engine · your rating {rating.rating}{rating.games ? ` (${rating.games} game${rating.games === 1 ? '' : 's'})` : ''}</small></h3>
+              {engineInfo ? (
+                <>
+                  <div className="oracle-stats">
+                    <span>Depth <b>{engineInfo.depth}</b>/{engineInfo.seldepth}</span>
+                    <span>Nodes <b>{engineInfo.nodes.toLocaleString()}</b></span>
+                    <span>Speed <b>{(engineInfo.nps / 1000).toFixed(0)}k</b>/s</span>
+                    <span>Time <b>{(engineInfo.timeMs / 1000).toFixed(2)}s</b></span>
+                    <span>Eval <b>{evalWhite ? fmtScore(evalWhite.cp, evalWhite.mate) : '—'}</b> (Light)</span>
+                  </div>
+                  <div className="oracle-pv">Expected line: {engineInfo.pv.slice(0, 8).join('  ') || '—'}</div>
+                </>
+              ) : (
+                <p className="stat-note">The engine reports its search after its first move.</p>
+              )}
+            </div>
+          )}
+
+
+        </aside>
       </div>
     </div>
   );

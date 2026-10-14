@@ -1,9 +1,10 @@
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Environment, ContactShadows, Sparkles } from '@react-three/drei';
 import * as THREE from 'three';
 import type { GameState, Piece, PlayerColor } from './types';
 import { Piece3D } from './Piece3D';
+import type { BoardTheme } from './Piece3D';
 
 type Pos = { row: number; col: number };
 
@@ -13,7 +14,36 @@ interface Board3DProps {
   selectedSquare: Pos | null;
   legalTargets?: Pos[];              // squares the selected piece can move to
   trapViewer?: PlayerColor | null;   // whose hidden traps to reveal (null = none)
+  theme?: BoardTheme;                // 'classic' tournament board or 'fantasy' dungeon
 }
+
+// Classic tournament board colours (maple and walnut)
+const CLASSIC_LIGHT = '#f0d9b5';
+const CLASSIC_DARK = '#b58863';
+const CLASSIC_FRAME = '#5b3a21';
+
+// Coordinate label (a–h, 1–8) drawn onto a small canvas texture
+const Label: React.FC<{ text: string; position: [number, number, number]; color: string }> = ({ text, position, color }) => {
+  const texture = useMemo(() => {
+    const cv = document.createElement('canvas');
+    cv.width = cv.height = 128;
+    const ctx = cv.getContext('2d')!;
+    ctx.fillStyle = color;
+    ctx.font = 'bold 84px Georgia, serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, 64, 70);
+    const t = new THREE.CanvasTexture(cv);
+    t.anisotropy = 4;
+    return t;
+  }, [text, color]);
+  return (
+    <mesh position={position} rotation={[-Math.PI / 2, 0, 0]}>
+      <planeGeometry args={[0.34, 0.34]} />
+      <meshBasicMaterial map={texture} transparent toneMapped={false} />
+    </mesh>
+  );
+};
 
 // ---- Palette: torch-lit dungeon stone ----
 const LIGHT_STONE = '#c9b48a';
@@ -87,7 +117,7 @@ const TrapRune: React.FC = () => {
 };
 
 // A piece that glides to its new square instead of teleporting
-const AnimatedPiece: React.FC<{ piece: Piece; pos: Pos; selected: boolean; onClick: () => void }> = ({ piece, pos, selected, onClick }) => {
+const AnimatedPiece: React.FC<{ piece: Piece; pos: Pos; selected: boolean; onClick: () => void; theme: BoardTheme }> = ({ piece, pos, selected, onClick, theme }) => {
   const ref = useRef<THREE.Group>(null);
   const target = useMemo(() => new THREE.Vector3(pos.col, 0, pos.row), [pos.col, pos.row]);
   const first = useRef(true);
@@ -97,7 +127,7 @@ const AnimatedPiece: React.FC<{ piece: Piece; pos: Pos; selected: boolean; onCli
       const m = o as THREE.Mesh;
       if (m.isMesh && !(m.material as THREE.Material).transparent) m.castShadow = true;
     });
-  }, [piece.type, piece.tempOffense]);
+  }, [piece.type, piece.tempOffense, theme]);
   useFrame((_, dt) => {
     const g = ref.current;
     if (!g) return;
@@ -116,55 +146,82 @@ const AnimatedPiece: React.FC<{ piece: Piece; pos: Pos; selected: boolean; onCli
       onPointerOver={() => { document.body.style.cursor = 'pointer'; }}
       onPointerOut={() => { document.body.style.cursor = 'auto'; }}
     >
-      <Piece3D piece={piece} />
+      <Piece3D piece={piece} theme={theme} />
     </group>
   );
 };
 
-export const Board3D: React.FC<Board3DProps> = ({ gameState, onSquareClick, selectedSquare, legalTargets = [], trapViewer = null }) => {
+export const Board3D: React.FC<Board3DProps> = ({ gameState, onSquareClick, selectedSquare, legalTargets = [], trapViewer = null, theme = 'classic' }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const controlsRef = useRef<any>(null);
+  const [isFull, setIsFull] = useState(false);
+  const classic = theme === 'classic';
+
+  useEffect(() => {
+    const onChange = () => setIsFull(document.fullscreenElement === containerRef.current);
+    document.addEventListener('fullscreenchange', onChange);
+    return () => document.removeEventListener('fullscreenchange', onChange);
+  }, []);
+
+  const toggleFullscreen = () => {
+    const el = containerRef.current;
+    if (!el) return;
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    else el.requestFullscreen?.()?.catch(() => {});
+  };
+
   const targetKey = new Set(legalTargets.map(t => `${t.row},${t.col}`));
 
   const pieces: { piece: Piece; pos: Pos }[] = [];
   gameState.board.forEach((row, r) => row.forEach((sq, c) => { if (sq.piece) pieces.push({ piece: sq.piece, pos: { row: r, col: c } }); }));
 
   return (
-    <div className="board-container">
-      <Canvas shadows camera={{ position: [0, 7.5, 7.8], fov: 42 }} dpr={[1, 2]}>
-        <color attach="background" args={['#0d0a12']} />
-        <fog attach="fog" args={['#0d0a12', 14, 26]} />
-
-        <ambientLight intensity={0.35} color="#b9a7ff" />
-        <directionalLight
-          position={[4, 10, 3]}
-          intensity={1.1}
-          color="#ffe2b8"
-          castShadow
-          shadow-mapSize-width={2048}
-          shadow-mapSize-height={2048}
-          shadow-camera-left={-6}
-          shadow-camera-right={6}
-          shadow-camera-top={6}
-          shadow-camera-bottom={-6}
-        />
-        <directionalLight position={[-6, 4, -4]} intensity={0.4} color="#7f6bff" />
-        <Environment preset="night" />
+    <div className={`board-container ${isFull ? 'is-full' : ''}`} ref={containerRef}>
+      <div className="board-controls">
+        <button type="button" onClick={() => controlsRef.current?.reset()} title="Reset camera">↺ View</button>
+        <button type="button" onClick={toggleFullscreen} title="Full screen">{isFull ? '✕ Exit full screen' : '⛶ Full screen'}</button>
+      </div>
+      <Canvas shadows camera={{ position: [0, 8.6, 7.4], fov: 40 }} dpr={[1, 2]}>
+        {classic ? (
+          <>
+            <color attach="background" args={['#1b130d']} />
+            <hemisphereLight args={['#fff4e0', '#3a2a1c', 0.6]} />
+            <directionalLight
+              position={[3, 11, 5]} intensity={1.6} color="#fff1dc" castShadow
+              shadow-mapSize-width={2048} shadow-mapSize-height={2048}
+              shadow-camera-left={-6} shadow-camera-right={6} shadow-camera-top={6} shadow-camera-bottom={-6}
+            />
+            <directionalLight position={[-5, 6, -4]} intensity={0.35} color="#ffe2c0" />
+            <Environment preset="apartment" />
+          </>
+        ) : (
+          <>
+            <color attach="background" args={['#0d0a12']} />
+            <fog attach="fog" args={['#0d0a12', 14, 26]} />
+            <ambientLight intensity={0.35} color="#b9a7ff" />
+            <directionalLight
+              position={[4, 10, 3]} intensity={1.1} color="#ffe2b8" castShadow
+              shadow-mapSize-width={2048} shadow-mapSize-height={2048}
+              shadow-camera-left={-6} shadow-camera-right={6} shadow-camera-top={6} shadow-camera-bottom={-6}
+            />
+            <directionalLight position={[-6, 4, -4]} intensity={0.4} color="#7f6bff" />
+            <Environment preset="night" />
+            <Sparkles count={70} scale={[11, 3, 11]} position={[0, 1.6, 0]} size={2.2} speed={0.25} color="#ffd27a" opacity={0.6} />
+            <Torch position={[-4.9, 0.6, -4.9]} />
+            <Torch position={[4.9, 0.6, -4.9]} />
+            <Torch position={[-4.9, 0.6, 4.9]} />
+            <Torch position={[4.9, 0.6, 4.9]} />
+          </>
+        )}
 
         <OrbitControls
+          ref={controlsRef}
           enablePan={false}
-          minPolarAngle={0.15}
+          minPolarAngle={0}
           maxPolarAngle={Math.PI / 2.3}
           minDistance={6}
-          maxDistance={16}
+          maxDistance={18}
         />
-
-        {/* Floating magic dust */}
-        <Sparkles count={70} scale={[11, 3, 11]} position={[0, 1.6, 0]} size={2.2} speed={0.25} color="#ffd27a" opacity={0.6} />
-
-        {/* Torches at the four corners */}
-        <Torch position={[-4.9, 0.6, -4.9]} />
-        <Torch position={[4.9, 0.6, -4.9]} />
-        <Torch position={[-4.9, 0.6, 4.9]} />
-        <Torch position={[4.9, 0.6, 4.9]} />
 
         <group position={[-3.5, 0, -3.5]}>
           {gameState.board.map((row, rowIndex) =>
@@ -177,30 +234,30 @@ export const Board3D: React.FC<Board3DProps> = ({ gameState, onSquareClick, sele
 
               return (
                 <group key={square.id} position={[colIndex, 0, rowIndex]}>
-                  {/* Stone tile (slightly inset so the grout lines show) */}
                   <mesh
                     position={[0, -0.1, 0]}
                     onClick={(e) => { e.stopPropagation(); onSquareClick(rowIndex, colIndex); }}
                     receiveShadow
                   >
-                    <boxGeometry args={[0.97, 0.2, 0.97]} />
+                    {/* Classic squares sit flush; fantasy stones leave gold grout lines */}
+                    <boxGeometry args={classic ? [1, 0.2, 1] : [0.97, 0.2, 0.97]} />
                     <meshStandardMaterial
-                      color={isLight ? LIGHT_STONE : DARK_STONE}
-                      roughness={isLight ? 0.75 : 0.6}
-                      metalness={isLight ? 0.05 : 0.15}
+                      color={classic ? (isLight ? CLASSIC_LIGHT : CLASSIC_DARK) : (isLight ? LIGHT_STONE : DARK_STONE)}
+                      roughness={classic ? 0.45 : (isLight ? 0.75 : 0.6)}
+                      metalness={classic ? 0 : (isLight ? 0.05 : 0.15)}
                       emissive={isSelected ? '#ffb703' : '#000000'}
-                      emissiveIntensity={isSelected ? 0.35 : 0}
+                      emissiveIntensity={isSelected ? (classic ? 0.25 : 0.35) : 0}
                     />
                   </mesh>
 
-                  {isSelected && <GlowRing color="#ffd166" />}
+                  {isSelected && <GlowRing color={classic ? '#f6c344' : '#ffd166'} pulse={!classic} />}
                   {isTarget && !isCaptureTarget && (
                     <mesh position={[0, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-                      <circleGeometry args={[0.13, 24]} />
-                      <meshBasicMaterial color="#7cf5c4" transparent opacity={0.85} toneMapped={false} />
+                      <circleGeometry args={[0.14, 24]} />
+                      <meshBasicMaterial color={classic ? '#2f6b3a' : '#7cf5c4'} transparent opacity={classic ? 0.55 : 0.85} toneMapped={false} />
                     </mesh>
                   )}
-                  {isCaptureTarget && <GlowRing color="#ff4d4d" inner={0.4} outer={0.48} />}
+                  {isCaptureTarget && <GlowRing color={classic ? '#c0392b' : '#ff4d4d'} inner={0.4} outer={0.48} pulse={!classic} />}
                   {showTrap && <TrapRune />}
                 </group>
               );
@@ -213,28 +270,62 @@ export const Board3D: React.FC<Board3DProps> = ({ gameState, onSquareClick, sele
               key={piece.id}
               piece={piece}
               pos={pos}
+              theme={theme}
               selected={selectedSquare?.row === pos.row && selectedSquare?.col === pos.col}
               onClick={() => onSquareClick(pos.row, pos.col)}
             />
           ))}
         </group>
 
-        {/* Carved stone frame with gold trim */}
-        <mesh position={[0, -0.28, 0]} receiveShadow castShadow>
-          <boxGeometry args={[8.9, 0.36, 8.9]} />
-          <meshStandardMaterial color="#2b2531" roughness={0.9} />
-        </mesh>
-        <mesh position={[0, -0.095, 0]}>
-          <boxGeometry args={[8.2, 0.02, 8.2]} />
-          <meshStandardMaterial color={GOLD} metalness={0.9} roughness={0.3} />
-        </mesh>
-        {/* Dais under the board */}
-        <mesh position={[0, -0.6, 0]} receiveShadow>
-          <cylinderGeometry args={[7.4, 7.8, 0.3, 48]} />
-          <meshStandardMaterial color="#1c1722" roughness={1} />
-        </mesh>
+        {/* Coordinates around the board, read from White's side */}
+        {'abcdefgh'.split('').map((f, i) => (
+          <React.Fragment key={f}>
+            <Label text={f} position={[i - 3.5, 0.002, 4.24]} color={classic ? '#f0d9b5' : '#d4a937'} />
+            <Label text={f} position={[i - 3.5, 0.002, -4.24]} color={classic ? '#f0d9b5' : '#d4a937'} />
+          </React.Fragment>
+        ))}
+        {[8, 7, 6, 5, 4, 3, 2, 1].map((n, r) => (
+          <React.Fragment key={n}>
+            <Label text={String(n)} position={[-4.24, 0.002, r - 3.5]} color={classic ? '#f0d9b5' : '#d4a937'} />
+            <Label text={String(n)} position={[4.24, 0.002, r - 3.5]} color={classic ? '#f0d9b5' : '#d4a937'} />
+          </React.Fragment>
+        ))}
 
-        <ContactShadows position={[0, -0.44, 0]} opacity={0.6} scale={20} blur={2.5} far={4} />
+        {classic ? (
+          <>
+            {/* Walnut frame with a thin inlay, on a wooden table */}
+            <mesh position={[0, -0.115, 0]} receiveShadow castShadow>
+              <boxGeometry args={[9.1, 0.22, 9.1]} />
+              <meshPhysicalMaterial color={CLASSIC_FRAME} roughness={0.35} clearcoat={0.6} clearcoatRoughness={0.25} />
+            </mesh>
+            <mesh position={[0, -0.001, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+              <ringGeometry args={[5.72, 5.8, 4, 1, Math.PI / 4]} />
+              <meshBasicMaterial color="#d8b47a" />
+            </mesh>
+            <mesh position={[0, -0.24, 0]} receiveShadow>
+              <boxGeometry args={[30, 0.04, 30]} />
+              <meshStandardMaterial color="#3a2616" roughness={0.7} />
+            </mesh>
+            <ContactShadows position={[0, -0.215, 0]} opacity={0.55} scale={20} blur={2.5} far={4} />
+          </>
+        ) : (
+          <>
+            {/* Carved stone frame with gold trim */}
+            <mesh position={[0, -0.28, 0]} receiveShadow castShadow>
+              <boxGeometry args={[8.9, 0.36, 8.9]} />
+              <meshStandardMaterial color="#2b2531" roughness={0.9} />
+            </mesh>
+            <mesh position={[0, -0.095, 0]}>
+              <boxGeometry args={[8.2, 0.02, 8.2]} />
+              <meshStandardMaterial color={GOLD} metalness={0.9} roughness={0.3} />
+            </mesh>
+            <mesh position={[0, -0.6, 0]} receiveShadow>
+              <cylinderGeometry args={[7.4, 7.8, 0.3, 48]} />
+              <meshStandardMaterial color="#1c1722" roughness={1} />
+            </mesh>
+            <ContactShadows position={[0, -0.44, 0]} opacity={0.6} scale={20} blur={2.5} far={4} />
+          </>
+        )}
       </Canvas>
     </div>
   );

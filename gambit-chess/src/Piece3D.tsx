@@ -3,8 +3,11 @@ import { useFrame } from '@react-three/fiber';
 import type { Piece as PieceType, PlayerColor } from './types';
 import * as THREE from 'three';
 
+export type BoardTheme = 'classic' | 'fantasy';
+
 interface Piece3DProps {
   piece: PieceType;
+  theme?: BoardTheme;
 }
 
 // Fantasy materials: the Light side is carved ivory, the Dark side is obsidian
@@ -30,6 +33,12 @@ const materialProps = {
   }
 };
 
+// Classic tournament set: boxwood and ebony, satin lacquer finish
+const classicMaterialProps = {
+  white: { color: '#ecd6aa', roughness: 0.42, metalness: 0.0, clearcoat: 0.55, clearcoatRoughness: 0.35 },
+  black: { color: '#2b1a10', roughness: 0.32, metalness: 0.0, clearcoat: 0.85, clearcoatRoughness: 0.2 },
+};
+
 // Team colours for trims, gems and the glowing rune under each piece
 const TEAM = {
   white: { trim: '#d4a937', gem: '#4fc3ff', rune: '#ffd166' },
@@ -37,17 +46,19 @@ const TEAM = {
 };
 
 // Glowing team rune under every piece (+ an orange aura when Rally is active)
-const RuneBase: React.FC<{ color: PlayerColor; rallied: boolean }> = ({ color, rallied }) => {
+const RuneBase: React.FC<{ color: PlayerColor; rallied: boolean; theme: BoardTheme }> = ({ color, rallied, theme }) => {
   const aura = useRef<THREE.MeshBasicMaterial>(null);
   useFrame(({ clock }) => {
     if (aura.current) aura.current.opacity = 0.35 + Math.sin(clock.getElapsedTime() * 6) * 0.2;
   });
   return (
     <>
-      <mesh position={[0, 0.015, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[0.36, 0.42, 40]} />
-        <meshBasicMaterial color={TEAM[color].rune} transparent opacity={0.55} toneMapped={false} />
-      </mesh>
+      {theme === 'fantasy' && (
+        <mesh position={[0, 0.015, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+          <ringGeometry args={[0.36, 0.42, 40]} />
+          <meshBasicMaterial color={TEAM[color].rune} transparent opacity={0.55} toneMapped={false} />
+        </mesh>
+      )}
       {rallied && (
         <mesh position={[0, 0.7, 0]}>
           <cylinderGeometry args={[0.42, 0.48, 1.4, 24, 1, true]} />
@@ -65,31 +76,56 @@ const createProfileGeometry = (points: [number, number][]) => {
   return new THREE.LatheGeometry(vectorPoints, 64);
 };
 
-export const Piece3D: React.FC<Piece3DProps> = ({ piece }) => {
+export const Piece3D: React.FC<Piece3DProps> = ({ piece, theme = 'classic' }) => {
   return (
     <group>
-      <RuneBase color={piece.color} rallied={!!piece.tempOffense} />
-      <PieceBody piece={piece} />
+      <RuneBase color={piece.color} rallied={!!piece.tempOffense} theme={theme} />
+      <PieceBody piece={piece} theme={theme} />
     </group>
   );
 };
 
+// Knight head: an original horse-head silhouette, extruded and bevelled.
+// Drawn facing +x; (x, y) in board units.
+const KNIGHT_PROFILE: [number, number][] = [
+  [-0.24, 0.0], [0.26, 0.0], [0.24, 0.1], [0.12, 0.2], [0.14, 0.3], [0.24, 0.38], [0.36, 0.46],
+  [0.42, 0.53], [0.4, 0.6], [0.3, 0.64], [0.18, 0.7], [0.1, 0.8], [0.06, 0.92], [0.0, 0.84],
+  [-0.06, 0.94], [-0.12, 0.82], [-0.2, 0.7], [-0.27, 0.52], [-0.3, 0.32], [-0.28, 0.14],
+];
+function makeKnightHead(): THREE.ExtrudeGeometry {
+  const shape = new THREE.Shape();
+  KNIGHT_PROFILE.forEach(([x, y], i) => (i === 0 ? shape.moveTo(x, y) : shape.lineTo(x, y)));
+  shape.closePath();
+  const geom = new THREE.ExtrudeGeometry(shape, {
+    depth: 0.2, bevelEnabled: true, bevelThickness: 0.05, bevelSize: 0.04, bevelSegments: 4, curveSegments: 8,
+  });
+  geom.translate(0, 0, -0.1);
+  geom.computeVertexNormals();
+  return geom;
+}
+const KNIGHT_HEAD = makeKnightHead();
+
 // Shared materials/parts (defined at module level so they aren't re-created every render)
-const BodyMat: React.FC<{ c: PlayerColor }> = ({ c }) => <meshPhysicalMaterial {...materialProps[c]} />;
-const TrimMat: React.FC<{ c: PlayerColor }> = ({ c }) => <meshStandardMaterial color={TEAM[c].trim} metalness={0.9} roughness={0.25} />;
-const GemMat: React.FC<{ c: PlayerColor }> = ({ c }) => (
-  <meshStandardMaterial color={TEAM[c].gem} emissive={TEAM[c].gem} emissiveIntensity={1.4} toneMapped={false} />
-);
-// Thin metal band used as a collar on each piece
-const TrimBand: React.FC<{ y: number; r: number; c: PlayerColor }> = ({ y, r, c }) => (
+// In the classic set every part is plain lacquered wood; the fantasy set adds metal and gems.
+const BodyMat: React.FC<{ c: PlayerColor; t: BoardTheme }> = ({ c, t }) =>
+  <meshPhysicalMaterial {...(t === 'classic' ? classicMaterialProps[c] : materialProps[c])} />;
+const TrimMat: React.FC<{ c: PlayerColor; t: BoardTheme }> = ({ c, t }) =>
+  t === 'classic' ? <BodyMat c={c} t={t} /> : <meshStandardMaterial color={TEAM[c].trim} metalness={0.9} roughness={0.25} />;
+const GemMat: React.FC<{ c: PlayerColor; t: BoardTheme }> = ({ c, t }) =>
+  t === 'classic' ? <BodyMat c={c} t={t} /> : (
+    <meshStandardMaterial color={TEAM[c].gem} emissive={TEAM[c].gem} emissiveIntensity={1.4} toneMapped={false} />
+  );
+// Thin band used as a collar on each piece
+const TrimBand: React.FC<{ y: number; r: number; c: PlayerColor; t: BoardTheme }> = ({ y, r, c, t }) => (
   <mesh position={[0, y, 0]} rotation={[Math.PI / 2, 0, 0]}>
-    <torusGeometry args={[r, 0.025, 10, 40]} />
-    <TrimMat c={c} />
+    <torusGeometry args={[r, t === 'classic' ? 0.018 : 0.025, 10, 40]} />
+    <TrimMat c={c} t={t} />
   </mesh>
 );
 
-const PieceBody: React.FC<Piece3DProps> = ({ piece }) => {
+const PieceBody: React.FC<Piece3DProps> = ({ piece, theme = 'classic' }) => {
   const c = piece.color;
+  const t = theme;
 
   // Pre-compute geometries with highly refined, realistic chess profiles (Staunton style)
   const pawnGeom = useMemo(() => createProfileGeometry([
@@ -131,24 +167,24 @@ const PieceBody: React.FC<Piece3DProps> = ({ piece }) => {
       return (
         <group position={[0, 0.1, 0]}>
           <mesh geometry={pawnGeom}>
-            <BodyMat c={c} />
+            <BodyMat c={c} t={t} />
           </mesh>
-          <TrimBand y={0.65} r={0.22} c={c} />
+          <TrimBand y={0.65} r={0.22} c={c} t={t} />
         </group>
       );
     case 'rook':
       return (
         <group position={[0, 0.1, 0]}>
           <mesh geometry={rookGeom}>
-            <BodyMat c={c} />
+            <BodyMat c={c} t={t} />
           </mesh>
-          <TrimBand y={0.1} r={0.41} c={c} />
-          <TrimBand y={0.82} r={0.38} c={c} />
+          <TrimBand y={0.1} r={0.41} c={c} t={t} />
+          <TrimBand y={0.82} r={0.38} c={c} t={t} />
           {/* Battlements for rook */}
           {[0, 1, 2, 3].map(i => (
             <mesh key={i} position={[Math.cos(i * Math.PI/2) * 0.25, 1.05, Math.sin(i * Math.PI/2) * 0.25]}>
               <boxGeometry args={[0.15, 0.1, 0.15]} />
-              <BodyMat c={c} />
+              <BodyMat c={c} t={t} />
             </mesh>
           ))}
         </group>
@@ -157,44 +193,26 @@ const PieceBody: React.FC<Piece3DProps> = ({ piece }) => {
       return (
         <group position={[0, 0.1, 0]}>
           <mesh geometry={knightBaseGeom}>
-            <BodyMat c={c} />
+            <BodyMat c={c} t={t} />
           </mesh>
-          <TrimBand y={0.12} r={0.41} c={c} />
-          {/* A more sculpted knight head using primitive groups */}
-          <group position={[0, 0.6, 0]}>
-            {/* Neck */}
-            <mesh position={[0, 0, 0]} rotation={[0, 0, 0.2]}>
-              <cylinderGeometry args={[0.15, 0.22, 0.5, 16]} />
-              <BodyMat c={c} />
+          <TrimBand y={0.12} r={0.41} c={c} t={t} />
+          {/* Sculpted horse head, facing the opponent */}
+          <group position={[0, 0.4, 0]} rotation={[0, c === 'white' ? Math.PI / 2 : -Math.PI / 2, 0]} scale={1.15}>
+            <mesh geometry={KNIGHT_HEAD}>
+              <BodyMat c={c} t={t} />
             </mesh>
-            {/* Snout */}
-            <mesh position={[0, 0.25, 0.15]} rotation={[0.4, 0, 0]}>
-              <cylinderGeometry args={[0.1, 0.18, 0.45, 16]} />
-              <BodyMat c={c} />
-            </mesh>
-            {/* Glowing eyes */}
-            <mesh position={[-0.09, 0.3, 0.17]}>
-              <sphereGeometry args={[0.03, 10, 10]} />
-              <GemMat c={c} />
-            </mesh>
-            <mesh position={[0.09, 0.3, 0.17]}>
-              <sphereGeometry args={[0.03, 10, 10]} />
-              <GemMat c={c} />
-            </mesh>
-            {/* Mane */}
-            <mesh position={[0, 0.15, -0.13]} rotation={[-0.3, 0, 0]}>
-              <boxGeometry args={[0.05, 0.45, 0.12]} />
-              <TrimMat c={c} />
-            </mesh>
-            {/* Ears */}
-            <mesh position={[-0.1, 0.35, -0.1]} rotation={[-0.2, 0, 0.2]}>
-              <coneGeometry args={[0.05, 0.2, 8]} />
-              <BodyMat c={c} />
-            </mesh>
-            <mesh position={[0.1, 0.35, -0.1]} rotation={[-0.2, 0, -0.2]}>
-              <coneGeometry args={[0.05, 0.2, 8]} />
-              <BodyMat c={c} />
-            </mesh>
+            {t === 'fantasy' && (
+              <>
+                <mesh position={[0.24, 0.62, 0.16]}>
+                  <sphereGeometry args={[0.03, 10, 10]} />
+                  <GemMat c={c} t={t} />
+                </mesh>
+                <mesh position={[0.24, 0.62, -0.16]}>
+                  <sphereGeometry args={[0.03, 10, 10]} />
+                  <GemMat c={c} t={t} />
+                </mesh>
+              </>
+            )}
           </group>
         </group>
       );
@@ -202,13 +220,13 @@ const PieceBody: React.FC<Piece3DProps> = ({ piece }) => {
       return (
         <group position={[0, 0.1, 0]}>
           <mesh geometry={bishopGeom}>
-            <BodyMat c={c} />
+            <BodyMat c={c} t={t} />
           </mesh>
-          <TrimBand y={0.75} r={0.26} c={c} />
+          <TrimBand y={0.75} r={0.26} c={c} t={t} />
           {/* Glowing gem on the mitre */}
           <mesh position={[0, 1.47, 0]}>
             <octahedronGeometry args={[0.09]} />
-            <GemMat c={c} />
+            <GemMat c={c} t={t} />
           </mesh>
         </group>
       );
@@ -216,19 +234,19 @@ const PieceBody: React.FC<Piece3DProps> = ({ piece }) => {
       return (
         <group position={[0, 0.1, 0]}>
           <mesh geometry={queenGeom}>
-            <BodyMat c={c} />
+            <BodyMat c={c} t={t} />
           </mesh>
-          <TrimBand y={0.95} r={0.34} c={c} />
+          <TrimBand y={0.95} r={0.34} c={c} t={t} />
           {/* Crown points */}
           {[0, 1, 2, 3, 4, 5, 6, 7].map(i => (
             <mesh key={i} position={[Math.cos((i * Math.PI) / 4) * 0.33, 1.6, Math.sin((i * Math.PI) / 4) * 0.33]}>
               <coneGeometry args={[0.05, 0.16, 6]} />
-              <TrimMat c={c} />
+              <TrimMat c={c} t={t} />
             </mesh>
           ))}
           <mesh position={[0, 1.55, 0]}>
             <sphereGeometry args={[0.12, 20, 20]} />
-            <GemMat c={c} />
+            <GemMat c={c} t={t} />
           </mesh>
         </group>
       );
@@ -236,22 +254,22 @@ const PieceBody: React.FC<Piece3DProps> = ({ piece }) => {
       return (
         <group position={[0, 0.1, 0]}>
           <mesh geometry={kingGeom}>
-            <BodyMat c={c} />
+            <BodyMat c={c} t={t} />
           </mesh>
-          <TrimBand y={0.98} r={0.4} c={c} />
+          <TrimBand y={0.98} r={0.4} c={c} t={t} />
           {/* Gold cross with a gem at its heart */}
           <group position={[0, 1.8, 0]}>
             <mesh>
               <boxGeometry args={[0.08, 0.34, 0.08]} />
-              <TrimMat c={c} />
+              <TrimMat c={c} t={t} />
             </mesh>
             <mesh position={[0, 0.05, 0]}>
               <boxGeometry args={[0.27, 0.08, 0.08]} />
-              <TrimMat c={c} />
+              <TrimMat c={c} t={t} />
             </mesh>
             <mesh position={[0, 0.05, 0.05]}>
               <octahedronGeometry args={[0.06]} />
-              <GemMat c={c} />
+              <GemMat c={c} t={t} />
             </mesh>
           </group>
         </group>
