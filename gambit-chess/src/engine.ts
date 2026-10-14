@@ -163,6 +163,7 @@ function pseudoMoveError(board: Square[][], color: PlayerColor, from: Pos, to: P
     return null;
   }
   if (!isValidChessMove(board, movingPiece, from, to, !!targetPiece)) return `Invalid move for ${movingPiece.type}.`;
+  if (targetPiece && targetPiece.type === 'king') return 'The King can never be captured.';
   if (targetPiece && !canCapture(movingPiece, targetPiece)) {
     const off = getOffense(movingPiece), def = getDefense(targetPiece);
     return `Combat Threshold failed: Offense (${off}) < Defense (${def === Infinity ? '∞' : def})`;
@@ -199,8 +200,24 @@ export function getLegalMoves(state: GameState, color: PlayerColor = state.turn)
   return moves;
 }
 
-export function placeTrap(state: GameState, at: {row: number, col: number}, owner: PlayerColor): GameState {
+// ---------- Input guards (the UI never sends bad input, but the rules must not trust it) ----------
+function assertOnBoard(p: Pos, what: string) {
+  if (!p || !Number.isInteger(p.row) || !Number.isInteger(p.col) || p.row < 0 || p.row > 7 || p.col < 0 || p.col > 7) {
+    throw new Error(`${what} is not a square on the board.`);
+  }
+}
+function assertPlaying(state: GameState) {
   if (isGameOver(state)) throw new Error('The game is over. Start a new game.');
+  if (state.phase !== 'main') throw new Error('Finish the Allocation Phase before playing.');
+}
+// A player's half: White owns ranks 1-4 (rows 4-7), Black owns ranks 5-8 (rows 0-3)
+export const isOwnHalf = (color: PlayerColor, row: number) => (color === 'white' ? row >= 4 : row <= 3);
+
+export function placeTrap(state: GameState, at: {row: number, col: number}, owner: PlayerColor): GameState {
+  assertPlaying(state);
+  assertOnBoard(at, 'Trap square');
+  if (owner !== state.turn) throw new Error('You can only place traps on your own turn.');
+  if (!isOwnHalf(owner, at.row)) throw new Error('You can only place a trap on your half of the board.');
   const newState: GameState = cloneState(state);
   const square = newState.board[at.row][at.col];
 
@@ -232,7 +249,8 @@ export const RALLY_COST = 2;
 export const SPRINT_COST = 3;
 
 export function playRally(state: GameState, at: Pos): GameState {
-  if (isGameOver(state)) throw new Error('The game is over. Start a new game.');
+  assertPlaying(state);
+  assertOnBoard(at, 'Rally target');
   const newState = cloneState(state);
   const me = newState.turn;
   const piece = newState.board[at.row][at.col].piece;
@@ -251,7 +269,9 @@ export function executeMove(
   to: {row: number, col: number},
   opts: { sprint?: boolean } = {}
 ): GameState {
-  if (isGameOver(state)) throw new Error('The game is over. Start a new game.');
+  assertPlaying(state);
+  assertOnBoard(from, 'Starting square');
+  assertOnBoard(to, 'Destination square');
 
   // Deep copy state for immutability
   const newState: GameState = cloneState(state);
@@ -306,17 +326,16 @@ export function executeMove(
 
   // Trap Mechanics
   if (targetSquare.trap && targetSquare.trap.owner !== movingPiece.color) {
-    // Enemy steps on trap -> destroy piece and trap
-    newState.history.push(`${movingPiece.id} stepped on a hidden trap! The piece is destroyed.`);
-    targetSquare.piece = null;
-    targetSquare.trap = null;
-    newState.movesSinceCapture = 0;
     if (movingPiece.type === 'king') {
-      newState.status = 'king-destroyed';
-      newState.winner = opponent(mover);
-      newState.inCheck = null;
-      newState.history.push(`${mover}'s King was destroyed by a trap. ${opponent(mover)} wins!`);
-      return newState;
+      // The Sovereign's Defense is infinite: a trap cannot destroy it. The trap is sprung and wasted.
+      newState.history.push(`${movingPiece.id} stepped on a hidden trap — the Sovereign is immune and the trap is destroyed.`);
+      targetSquare.trap = null;
+    } else {
+      // Enemy steps on trap -> destroy piece and trap
+      newState.history.push(`${movingPiece.id} stepped on a hidden trap! The piece is destroyed.`);
+      targetSquare.piece = null;
+      targetSquare.trap = null;
+      newState.movesSinceCapture = 0;
     }
   }
 

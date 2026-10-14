@@ -265,6 +265,29 @@ describe('Gambit Points, cards and promotion', () => {
   }, SLOW);
 });
 
+describe('Exploit attempts are rejected', () => {
+  const start = () => { const s = createInitialState(30, 30); s.phase = 'main'; s.players.white.gp = 20; s.players.black.gp = 20; return s; };
+  const cases: [string, () => unknown][] = [
+    ['trap on the enemy half', () => placeTrap(start(), sq('e5'), 'white')],
+    ['trap on the opponent\'s turn', () => placeTrap(start(), sq('e6'), 'black')],
+    ['trap off the board', () => placeTrap(start(), { row: 9, col: 0 }, 'white')],
+    ['trap during setup', () => { const s = start(); s.phase = 'allocation'; return placeTrap(s, sq('e3'), 'white'); }],
+    ['rally off the board', () => playRally(start(), { row: -1, col: 3 })],
+    ['rally during setup', () => { const s = start(); s.phase = 'allocation'; return playRally(s, sq('e2')); }],
+    ['move off the board', () => executeMove(start(), sq('a2'), { row: 6, col: -1 })],
+    ['move with fractional coordinates', () => executeMove(start(), { row: 6.5, col: 4 }, sq('e3'))],
+    ['move during setup', () => { const s = start(); s.phase = 'allocation'; return executeMove(s, sq('e2'), sq('e3')); }],
+  ];
+  for (const [name, fn] of cases) {
+    it(name, () => {
+      let err: unknown = null;
+      try { fn(); } catch (e) { err = e; }
+      expect(err instanceof Error).toBe(true);
+      expect(err instanceof TypeError).toBe(false); // a clean rule error, not a crash
+    }, SLOW);
+  }
+});
+
 describe('Check, checkmate, stalemate and draws', () => {
   it('detects checkmate (Queen supported by King)', () => {
     const s = emptyState();
@@ -287,15 +310,26 @@ describe('Check, checkmate, stalemate and draws', () => {
     expect(() => executeMove(s, sq('e1'), sq('d2'))).not.toThrow();
     expect(isInCheck(s.board, 'white')).toBe(false);
   }, SLOW);
-  it('a King that steps on an enemy trap is destroyed and that side loses', () => {
+  it('the King (∞ Defense) is immune to traps: the trap is used up, the King survives', () => {
     let t = emptyState();
     put(t, 'd6', 'king', 'white'); put(t, 'h8', 'king', 'black');
     t.players.black.gp = 4; t.turn = 'black';
     t = placeTrap(t, sq('d7'), 'black');
     t.turn = 'white';
     t = executeMove(t, sq('d6'), sq('d7'));
-    expect(t.status).toBe('king-destroyed');
-    expect(t.winner).toBe('black');
+    expect(t.status).toBe('playing');
+    expect(t.board[sq('d7').row][sq('d7').col].piece?.type).toBe('king');
+    expect(t.board[sq('d7').row][sq('d7').col].trap).toBeNull();
+  }, SLOW);
+  it('any other piece that steps on an enemy trap is destroyed, and its owner gets no GP', () => {
+    let t = emptyState();
+    put(t, 'a1', 'king', 'white'); put(t, 'h8', 'king', 'black'); put(t, 'd2', 'rook', 'white');
+    t.players.black.gp = 4; t.turn = 'black';
+    t = placeTrap(t, sq('d7'), 'black');
+    t.turn = 'white';
+    t = executeMove(t, sq('d2'), sq('d7'));
+    expect(t.board[sq('d7').row][sq('d7').col].piece).toBeNull();
+    expect(t.players.white.gp).toBe(0);
   }, SLOW);
   it(`draw after ${DRAW_PLIES_WITHOUT_CAPTURE} plies without a capture`, () => {
     let s = emptyState();

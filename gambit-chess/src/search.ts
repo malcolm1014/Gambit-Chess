@@ -372,13 +372,14 @@ export class Position {
     // Legality is judged before traps resolve (same rule as the game engine)
     if (this.inCheck(us)) { this.unmake(); return false; }
 
-    // Trap: an enemy piece entering a known trap is destroyed
+    // Trap: an enemy piece entering a known trap is destroyed (the King is immune; the trap is just used up)
     const tr = this.trap[to];
     if (tr && tr !== us) {
-      this.xorPiece(code, to);
-      b[to] = 0; this.off[to] = 0; this.def[to] = 0;
+      if (Math.abs(code) !== K) {
+        this.xorPiece(code, to);
+        b[to] = 0; this.off[to] = 0; this.def[to] = 0;
+      }
       this.xorTrap(tr, to); this.trap[to] = 0;
-      if (Math.abs(code) === K) this.kingLost = us;
     }
     return true;
   }

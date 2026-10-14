@@ -12,12 +12,12 @@ export interface ComputerTurn {
 }
 
 // Pitfall heuristic: put a trap where the opponent's pieces are most likely to step,
-// weighted by the value of the piece that would be lost (the King counts heavily).
+// weighted by the value of the piece that would be lost (Kings are immune, so they count for nothing).
 export function chooseTrapSquare(state: GameState, chance = 0.35): Pos | null {
   const me: PlayerColor = state.turn;
   if (state.players[me].gp < 4 || Math.random() > chance) return null;
   const them: PlayerColor = me === 'white' ? 'black' : 'white';
-  const value: Record<string, number> = { pawn: 1, knight: 3, bishop: 3, rook: 5, queen: 9, king: 40 };
+  const value: Record<string, number> = { pawn: 1, knight: 3, bishop: 3, rook: 5, queen: 9, king: 0 }; // Kings are immune to traps
   // Opponent's moves, as if it were their turn (traps are hidden from them anyway)
   const theirMoves = getLegalMoves({ ...state, turn: them }, them);
   const myRows = me === 'white' ? [4, 5, 6, 7] : [0, 1, 2, 3];
