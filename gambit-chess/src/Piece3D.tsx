@@ -7,52 +7,69 @@ interface Piece3DProps {
 }
 
 const materialProps = {
-  white: { color: '#fcfcfc', roughness: 0.15, metalness: 0.05, clearcoat: 0.8, clearcoatRoughness: 0.1 },
-  black: { color: '#1a1a1a', roughness: 0.2, metalness: 0.1, clearcoat: 0.6, clearcoatRoughness: 0.2 }
+  white: {
+    color: '#fffff5',
+    roughness: 0.1,
+    metalness: 0.1,
+    clearcoat: 1.0,
+    clearcoatRoughness: 0.1,
+    transmission: 0.1,
+    ior: 1.5,
+    thickness: 1.0
+  },
+  black: {
+    color: '#111111',
+    roughness: 0.2,
+    metalness: 0.6,
+    clearcoat: 0.8,
+    clearcoatRoughness: 0.2
+  }
 };
 
 // Helper function to generate a LatheGeometry from an array of [x, y] points
+// Increased segments for a smoother, more realistic curve
 const createProfileGeometry = (points: [number, number][]) => {
   const vectorPoints = points.map(p => new THREE.Vector2(p[0], p[1]));
-  return new THREE.LatheGeometry(vectorPoints, 32);
+  return new THREE.LatheGeometry(vectorPoints, 64);
 };
 
 export const Piece3D: React.FC<Piece3DProps> = ({ piece }) => {
   const mat = materialProps[piece.color];
-  const Material = () => <meshPhysicalMaterial {...mat} />;
+  const Material = () => <meshPhysicalMaterial {...mat} castShadow receiveShadow />;
 
-  // Pre-compute geometries so we don't recreate them every render frame
+  // Pre-compute geometries with highly refined, realistic chess profiles (Staunton style)
   const pawnGeom = useMemo(() => createProfileGeometry([
-    [0.00, 0.0], [0.35, 0.0], [0.35, 0.1], [0.30, 0.15], [0.28, 0.2],
-    [0.22, 0.4], [0.15, 0.6], [0.18, 0.65], [0.18, 0.7], [0.10, 0.75],
-    [0.22, 0.9], [0.15, 1.1], [0.00, 1.1]
+    [0.00, 0.00], [0.35, 0.00], [0.35, 0.08], [0.30, 0.12], [0.28, 0.16],
+    [0.24, 0.35], [0.18, 0.55], [0.22, 0.62], [0.22, 0.68], [0.12, 0.72],
+    [0.24, 0.88], [0.22, 1.02], [0.12, 1.15], [0.00, 1.15]
   ]), []);
 
   const rookGeom = useMemo(() => createProfileGeometry([
-    [0.00, 0.0], [0.38, 0.0], [0.38, 0.15], [0.32, 0.2], [0.28, 0.5],
-    [0.26, 0.7], [0.35, 0.8], [0.35, 1.0], [0.28, 1.0], [0.28, 0.9], [0.00, 0.9]
+    [0.00, 0.00], [0.42, 0.00], [0.42, 0.12], [0.36, 0.18], [0.32, 0.40],
+    [0.30, 0.70], [0.38, 0.80], [0.40, 0.95], [0.38, 1.10], [0.28, 1.10],
+    [0.28, 1.00], [0.00, 1.00]
   ]), []);
 
   const bishopGeom = useMemo(() => createProfileGeometry([
-    [0.00, 0.0], [0.35, 0.0], [0.35, 0.1], [0.30, 0.15], [0.25, 0.2],
-    [0.15, 0.6], [0.18, 0.7], [0.22, 0.75], [0.22, 0.8], [0.10, 0.85],
-    [0.20, 1.0], [0.10, 1.25], [0.02, 1.3], [0.05, 1.35], [0.00, 1.4]
+    [0.00, 0.00], [0.40, 0.00], [0.40, 0.10], [0.34, 0.16], [0.28, 0.22],
+    [0.18, 0.50], [0.20, 0.65], [0.26, 0.72], [0.26, 0.78], [0.12, 0.84],
+    [0.22, 1.00], [0.18, 1.20], [0.05, 1.40], [0.06, 1.45], [0.00, 1.50]
   ]), []);
 
   const queenGeom = useMemo(() => createProfileGeometry([
-    [0.00, 0.0], [0.40, 0.0], [0.40, 0.15], [0.35, 0.2], [0.30, 0.25],
-    [0.20, 0.7], [0.25, 0.8], [0.30, 0.85], [0.30, 0.9], [0.15, 0.95],
-    [0.35, 1.2], [0.35, 1.3], [0.25, 1.35], [0.10, 1.3], [0.00, 1.3]
+    [0.00, 0.00], [0.45, 0.00], [0.45, 0.12], [0.38, 0.20], [0.32, 0.28],
+    [0.22, 0.70], [0.28, 0.85], [0.34, 0.92], [0.34, 0.98], [0.18, 1.05],
+    [0.38, 1.30], [0.38, 1.45], [0.28, 1.55], [0.15, 1.45], [0.00, 1.45]
   ]), []);
 
   const kingGeom = useMemo(() => createProfileGeometry([
-    [0.00, 0.0], [0.42, 0.0], [0.42, 0.15], [0.38, 0.2], [0.32, 0.25],
-    [0.22, 0.7], [0.28, 0.8], [0.35, 0.85], [0.35, 0.9], [0.20, 0.95],
-    [0.30, 1.2], [0.30, 1.35], [0.15, 1.45], [0.00, 1.45]
+    [0.00, 0.00], [0.48, 0.00], [0.48, 0.15], [0.40, 0.22], [0.34, 0.30],
+    [0.26, 0.75], [0.32, 0.88], [0.40, 0.95], [0.40, 1.02], [0.22, 1.10],
+    [0.35, 1.35], [0.35, 1.55], [0.18, 1.65], [0.00, 1.65]
   ]), []);
 
   const knightBaseGeom = useMemo(() => createProfileGeometry([
-    [0.00, 0.0], [0.38, 0.0], [0.38, 0.15], [0.32, 0.2], [0.28, 0.4], [0.0, 0.4]
+    [0.00, 0.00], [0.42, 0.00], [0.42, 0.12], [0.36, 0.20], [0.30, 0.45], [0.0, 0.45]
   ]), []);
 
   switch (piece.type) {
