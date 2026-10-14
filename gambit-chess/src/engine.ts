@@ -69,7 +69,7 @@ export function createInitialState(whiteDicePool: number, blackDicePool: number)
     players: {
       white: {
         color: 'white',
-        gp: 0,
+        gp: 10,
         dicePool: whiteDicePool,
         allocationReady: false
       },
@@ -82,6 +82,30 @@ export function createInitialState(whiteDicePool: number, blackDicePool: number)
     },
     history: []
   };
+}
+
+export function placeTrap(state: GameState, at: {row: number, col: number}, owner: PlayerColor): GameState {
+  const newState: GameState = JSON.parse(JSON.stringify(state));
+  const square = newState.board[at.row][at.col];
+
+  if (square.trap) {
+    throw new Error("There is already a trap here.");
+  }
+
+  square.trap = {
+    owner,
+    hidden: true
+  };
+
+  // placing a trap costs 4 GP
+  if (newState.players[owner].gp < 4) {
+    throw new Error("Not enough GP to place a trap.");
+  }
+  newState.players[owner].gp -= 4;
+
+  newState.history.push(`${owner} placed a hidden trap.`);
+
+  return newState;
 }
 
 // Executes a move (without full standard chess validation for now, assuming valid move)
@@ -121,6 +145,19 @@ export function executeMove(state: GameState, from: {row: number, col: number}, 
   // Move the piece
   targetSquare.piece = movingPiece;
   sourceSquare.piece = null;
+
+  // Trap Mechanics
+  if (targetSquare.trap) {
+    if (targetSquare.trap.owner !== movingPiece.color) {
+      // Enemy steps on trap -> destroy piece and trap
+      newState.history.push(`${movingPiece.id} stepped on a hidden trap! The piece is destroyed.`);
+      targetSquare.piece = null;
+      targetSquare.trap = null;
+    } else {
+      // Own trap, do nothing or allow passage
+      // We leave the trap there or let the piece stand on it
+    }
+  }
 
   // Switch turn
   newState.turn = newState.turn === 'white' ? 'black' : 'white';

@@ -38,6 +38,8 @@ export const Board3D: React.FC<Board3DProps> = ({ gameState, onSquareClick, sele
               const xPos = colIndex;
               const zPos = rowIndex;
 
+              const showTrap = square.trap && square.trap.owner === gameState.turn;
+
               return (
                 <group key={square.id} position={[xPos, 0, zPos]}>
                   {/* Square */}
@@ -58,6 +60,23 @@ export const Board3D: React.FC<Board3DProps> = ({ gameState, onSquareClick, sele
                       clearcoatRoughness={0.2}
                     />
                   </mesh>
+
+                  {/* Trap Indicator */}
+                  {showTrap && (
+                    <mesh position={[0, 0.01, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+                       <planeGeometry args={[0.8, 0.8]} />
+                       <meshBasicMaterial color="#d90429" transparent opacity={0.5} />
+                       {/* A simple cross for the trap */}
+                       <mesh position={[0, 0, 0.01]} rotation={[0, 0, Math.PI / 4]}>
+                           <planeGeometry args={[0.9, 0.1]} />
+                           <meshBasicMaterial color="#8d0801" />
+                       </mesh>
+                       <mesh position={[0, 0, 0.01]} rotation={[0, 0, -Math.PI / 4]}>
+                           <planeGeometry args={[0.9, 0.1]} />
+                           <meshBasicMaterial color="#8d0801" />
+                       </mesh>
+                    </mesh>
+                  )}
 
                   {/* Piece */}
                   {square.piece && (

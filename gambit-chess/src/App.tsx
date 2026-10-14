@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { createInitialState, executeMove } from './engine';
+import { createInitialState, executeMove, placeTrap } from './engine';
 import { rollAllocationPool } from './mathLogic';
 import { useEffect } from 'react';
 import { Board3D } from './Board3D';
@@ -15,13 +15,14 @@ const DEFAULT_DECK: CardData[] = [
 ];
 
 function App() {
-  const [gameState, setGameState] = useState(() =>
+  const [gameState, setGameState] = useState<GameState>(() =>
     createInitialState(rollAllocationPool(), rollAllocationPool())
   );
 
   const [selectedSquare, setSelectedSquare] = useState<{row: number, col: number} | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [gameMode, setGameMode] = useState<'pvp' | 'pvc'>('pvc'); // default player vs computer
+  const [pendingAction, setPendingAction] = useState<{type: 'trap', card: CardData} | null>(null);
 
   useEffect(() => {
     if (gameMode === 'pvc' && gameState.turn === 'black') {
@@ -49,6 +50,25 @@ function App() {
     if (gameMode === 'pvc' && gameState.turn === 'black') return;
 
     setError(null);
+
+    if (pendingAction?.type === 'trap') {
+       try {
+         // Need to check if it's on their side
+         const isWhite = gameState.turn === 'white';
+         const validRank = isWhite ? row > 3 : row < 4; // White is bottom (4-7), Black is top (0-3)
+         if (!validRank) {
+           throw new Error("You can only place a trap on your half of the board.");
+         }
+
+         const newState = placeTrap(gameState, {row, col}, gameState.turn);
+         setGameState(newState);
+         setPendingAction(null);
+       } catch (e: any) {
+         setError(e.message);
+         setPendingAction(null);
+       }
+       return;
+    }
 
     // If nothing selected, select the square if it has a piece belonging to the current player
     if (!selectedSquare) {
@@ -103,6 +123,11 @@ function App() {
       </div>
 
       {error && <div className="error">{error}</div>}
+      {pendingAction && (
+        <div className="status-message" style={{ color: '#d90429', fontWeight: 'bold', margin: '10px 0' }}>
+          Select a square on your side of the board to place {pendingAction.card.name}.
+        </div>
+      )}
 
       <Board3D
         gameState={gameState}
@@ -125,7 +150,13 @@ function App() {
                key={card.id}
                card={card}
                canAfford={currentPlayer.gp >= card.cost}
-               onPlay={(c) => console.log('Played card', c.name)}
+               onPlay={(c) => {
+                 if (c.id === '2') {
+                    setPendingAction({ type: 'trap', card: c });
+                 } else {
+                    console.log('Played card', c.name);
+                 }
+               }}
              />
            );
         })}
