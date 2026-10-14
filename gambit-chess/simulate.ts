@@ -1,7 +1,7 @@
 // Plays 100 full computer-vs-computer games (with traps, Rally and Sprint) and
 // reports how they ended plus any rule violations it detects.
 // Run with: npx tsx simulate.ts
-import { createInitialState, executeMove, placeTrap, playRally, getLegalMoves, isGameOver, isInCheck } from './src/engine';
+import { createInitialState, executeMove, placeTrap, playRally, getLegalMoves, isGameOver, isInCheck, TRAP_COST } from './src/engine';
 import { rollAllocationPool } from './src/mathLogic';
 import { getComputerMove } from './src/ai';
 import type { GameState, PieceType } from './src/types';
@@ -53,7 +53,7 @@ for (let g = 1; g <= 100; g++) {
     if (isGameOver(state)) { ended = `${state.status}` + (state.winner ? ` (${state.winner} wins)` : ''); break; }
     // sometimes place a trap if affordable (like a player using Pitfall)
     const me = state.turn;
-    if (state.players[me].gp >= 4 && Math.random() < 0.1) {
+    if (state.players[me].gp >= TRAP_COST && Math.random() < 0.1) {
       const rows = me === 'white' ? [4,5,6,7] : [0,1,2,3];
       const empties = rows.flatMap(r => state.board[r].map((sq,c)=>({r,c,sq}))).filter(x=>!x.sq.piece && !x.sq.trap);
       if (empties.length) {

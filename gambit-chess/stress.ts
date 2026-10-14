@@ -2,7 +2,7 @@
 // Rally and Sprint, one side deliberately sacrifices pieces to farm Gambit Points,
 // and every action is checked against the rules (GP ledger, trap placement, stats,
 // termination, engine/rules agreement). Run with: npx tsx stress.ts [games] [ms per move]
-import { createInitialState, executeMove, placeTrap, playRally, getLegalMoves, isGameOver, isInCheck, PIECE_VALUES, PIECE_ROLES, DRAW_PLIES_WITHOUT_CAPTURE } from './src/engine';
+import { createInitialState, executeMove, placeTrap, playRally, getLegalMoves, isGameOver, isInCheck, PIECE_VALUES, PIECE_ROLES, DRAW_PLIES_WITHOUT_CAPTURE, TRAP_COST } from './src/engine';
 import { rollAllocationPool, getOffense, getDefense, canCapture } from './src/mathLogic';
 import { chooseTrapSquare } from './src/ai';
 import { Position, Searcher, engineLegalMoves } from './src/search';
@@ -81,7 +81,7 @@ for (let g = 1; g <= GAMES; g++) {
   while (!isGameOver(s) && plies < 2000) {
     const me = s.turn, ctx = `g${g} ply${plies}`;
     // 1) Traps: place as many as the heuristic likes (spam)
-    for (let k = 0; k < 3 && s.players[me].gp >= 4; k++) {
+    for (let k = 0; k < 3 && s.players[me].gp >= TRAP_COST; k++) {
       let at = chooseTrapSquare(s, 1);
       if (!at) {
         const rows = me === 'white' ? [4, 5, 6, 7] : [0, 1, 2, 3];
@@ -89,8 +89,8 @@ for (let g = 1; g <= GAMES; g++) {
         if (!empties.length || Math.random() < 0.5) break;
         const e = empties[Math.floor(Math.random() * empties.length)]; at = { row: e.r, col: e.c };
       }
-      const b = s; s = placeTrap(s, at, me); T.traps++; T.gpOnTraps += 4;
-      ledger(b, s, { white: me === 'white' ? 4 : 0, black: me === 'black' ? 4 : 0 }, ctx + ' trap');
+      const b = s; s = placeTrap(s, at, me); T.traps++; T.gpOnTraps += TRAP_COST;
+      ledger(b, s, { white: me === 'white' ? TRAP_COST : 0, black: me === 'black' ? TRAP_COST : 0 }, ctx + ' trap');
     }
     // 2) Rally: find a capture that only becomes possible with +2 Offense
     if (s.players[me].gp >= 2) {
