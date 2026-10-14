@@ -82,10 +82,10 @@ for (let g = 1; g <= 100; g++) {
     const kingsBefore = state.board.flat().filter(s=>s.piece?.type==='king').map(s=>s.piece!.color);
     if (kingsBefore.length < 2) { ended = `king captured — game never declared a winner (${kingsBefore[0] ?? 'none'} king remains)`; bump('game continues after king captured', `g${g} m${m}`); break; }
     if (getLegalMoves(state).length === 0) bump('no legal moves but game not marked over', `g${g} m${m}`);
-    const mv = getComputerMove(state);
+    const mv = getComputerMove(state, { timeMs: 25 });
     if (!mv) { ended = `${state.turn} has no legal move but game not marked over — FREEZE`; bump('freeze: no move but game not over', `g${g}`); break; }
     let next: GameState;
-    try { next = executeMove(state, mv.from, mv.to); }
+    try { next = executeMove(state, mv.from, mv.to, { sprint: !!mv.sprint }); }
     catch (e: any) { bump('AI chose a move that throws', e.message); ended='crash'; break; }
     const captured = state.board[mv.to.row][mv.to.col].piece;
     if (captured?.type === 'king') bump('king was captured', `g${g} m${m} ${state.board[mv.from.row][mv.from.col].piece!.id} took ${captured.id}`);
