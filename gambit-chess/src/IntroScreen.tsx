@@ -3,7 +3,10 @@ import type { GameState, PlayerColor, PieceType } from './types';
 
 interface IntroScreenProps {
   gameState: GameState;
-  onCompleteAllocation: (allocations: { white: Record<PieceType, { modOffense: number, modDefense: number }>, black: Record<PieceType, { modOffense: number, modDefense: number }> }) => void;
+  onCompleteAllocation: (
+    allocations: { white: Record<PieceType, { modOffense: number, modDefense: number }>, black: Record<PieceType, { modOffense: number, modDefense: number }> },
+    selectedMode: 'pvp' | 'pvc'
+  ) => void;
 }
 
 type AllocationState = Record<PieceType, { modOffense: number, modDefense: number }>;
@@ -18,6 +21,7 @@ const initialAllocation: AllocationState = {
 };
 
 export function IntroScreen({ gameState, onCompleteAllocation }: IntroScreenProps) {
+  const [mode, setMode] = useState<'pvp' | 'pvc'>('pvc');
   const [currentPlayer, setCurrentPlayer] = useState<PlayerColor>('white');
   const [pointsRemaining, setPointsRemaining] = useState(gameState.players.white.dicePool);
 
@@ -46,7 +50,7 @@ export function IntroScreen({ gameState, onCompleteAllocation }: IntroScreenProp
       setCurrentPlayer('black');
       setPointsRemaining(gameState.players.black.dicePool);
     } else {
-      onCompleteAllocation({ white: whiteAllocations, black: blackAllocations });
+      onCompleteAllocation({ white: whiteAllocations, black: blackAllocations }, mode);
     }
   };
 
@@ -54,14 +58,42 @@ export function IntroScreen({ gameState, onCompleteAllocation }: IntroScreenProp
     <div className="intro-screen">
       <h1>Welcome to Gambit Chess</h1>
 
-      <div className="rules-section">
-        <h2>Rules</h2>
+      <div className="rules-section" style={{ textAlign: 'left', lineHeight: '1.6' }}>
+        <h2>The Game</h2>
+        <p>
+          Gambit Chess is a mathematically rigorous variant of traditional chess that introduces RPG-style stat allocation, a resource economy, and hidden information mechanics.
+          Standard chess movement applies, but combat is determined by a strict mathematical threshold.
+        </p>
+
+        <h3>Core Mechanics</h3>
         <ul>
-          <li><strong>Combat Threshold:</strong> You can only capture if your Total Offense &ge; enemy's Total Defense.</li>
-          <li><strong>Allocation:</strong> You have rolled points to allocate to your pieces as +Offense or +Defense modifiers. These modifiers apply to ALL pieces of that type (e.g., all pawns).</li>
-          <li><strong>Gambit Points (GP):</strong> Gain GP when your pieces are captured. Spend GP to play cards or place hidden traps!</li>
+          <li><strong>Base Stats:</strong> Pieces have base Offense (O) and Defense (D) equal to their traditional values (Pawn=1, Knight/Bishop=3, Rook=5, Queen=9, King=Inf).</li>
+          <li><strong>Combat Threshold:</strong> You can <em>only</em> execute a legal capture if the attacking piece's Total Offense (Base + Modifiers) is &ge; the defending piece's Total Defense.</li>
+          <li><strong>Allocation Phase:</strong> At the start of the game, a Wolfram Rule 30 pseudo-random algorithm rolls a dice pool (3x 6d8). You must secretly allocate these points to modify your pieces' Offense or Defense before the first move.</li>
+          <li><strong>Gambit Points (GP):</strong> When your piece is captured, you gain GP equal to its base value.</li>
+          <li><strong>Cards & Traps:</strong> Spend GP to play powerful cards or place hidden traps on your side of the board. Enemy pieces are destroyed upon stepping on your traps!</li>
         </ul>
       </div>
+
+      <div className="mode-selector" style={{ marginBottom: '2rem' }}>
+        <h3 style={{ marginBottom: '1rem' }}>Select Game Mode</h3>
+        <button
+          className={mode === 'pvc' ? 'active-mode' : ''}
+          onClick={() => setMode('pvc')}
+          style={{ marginRight: '1rem', padding: '0.8rem 1.5rem', cursor: 'pointer', borderRadius: '4px', border: mode === 'pvc' ? '2px solid #2563eb' : '1px solid #ccc' }}
+        >
+          1 Player (vs AI)
+        </button>
+        <button
+          className={mode === 'pvp' ? 'active-mode' : ''}
+          onClick={() => setMode('pvp')}
+          style={{ padding: '0.8rem 1.5rem', cursor: 'pointer', borderRadius: '4px', border: mode === 'pvp' ? '2px solid #2563eb' : '1px solid #ccc' }}
+        >
+          2 Player (Local)
+        </button>
+      </div>
+
+      <hr style={{ margin: '2rem 0', borderColor: '#e2e8f0' }} />
 
       <div className="allocation-section">
         <h2>Allocation Phase - {currentPlayer.toUpperCase()}</h2>

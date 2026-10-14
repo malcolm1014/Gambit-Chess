@@ -95,7 +95,7 @@ function App() {
     }
   };
 
-  const handleCompleteAllocation = (allocations: any) => {
+  const handleCompleteAllocation = (allocations: any, selectedMode: 'pvp' | 'pvc') => {
     // Apply allocations to the board pieces
     const newState = { ...gameState };
 
@@ -117,6 +117,7 @@ function App() {
     newState.players.black.allocationReady = true;
     newState.phase = 'main';
     setGameState(newState);
+    setGameMode(selectedMode);
   };
 
   if (gameState.phase === 'allocation') {
@@ -131,21 +132,6 @@ function App() {
   return (
     <div className="app-container">
       <h1>Gambit Chess</h1>
-
-      <div className="mode-selector">
-        <button
-          className={gameMode === 'pvc' ? 'active-mode' : ''}
-          onClick={() => setGameMode('pvc')}
-        >
-          1 Player (vs AI)
-        </button>
-        <button
-          className={gameMode === 'pvp' ? 'active-mode' : ''}
-          onClick={() => setGameMode('pvp')}
-        >
-          2 Player (Local)
-        </button>
-      </div>
 
       <div className="stats">
         <div className={`player-stat ${gameState.turn === 'white' ? 'active' : ''}`}>
