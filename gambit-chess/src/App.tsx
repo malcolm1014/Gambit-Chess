@@ -245,7 +245,7 @@ function App() {
           {selectedPiece ? (
             <>
               <div className="unit-name">
-                <span className={`unit-icon ${selectedPiece.color}`}>{PIECE_ICON[selectedPiece.type]}</span>
+                <span className={`unit-icon ${selectedPiece.color}`}>{PIECE_ICON[selectedPiece.type] + '\uFE0E'}</span>
                 {cap(selectedPiece.type)}
                 {selectedPiece.tempOffense ? <span className="rally-tag">Rallied</span> : null}
               </div>
