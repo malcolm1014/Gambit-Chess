@@ -71,7 +71,7 @@
 
   /* table */
   .table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--radius)}
-  table{width:100%;border-collapse:collapse;min-width:480px}
+  table{width:100%;border-collapse:collapse;min-width:620px}
   th,td{padding:12px 16px;text-align:left;border-bottom:1px solid var(--line)}
   th{background:var(--panel);color:var(--muted);font-size:.8rem;text-transform:uppercase;letter-spacing:.08em}
   tr:last-child td{border-bottom:0}
@@ -194,9 +194,9 @@
     <div class="grid g2">
       <div>
         <h3>&#9876; The Combat Threshold</h3>
-        <p style="color:var(--muted)">Each piece has an <b>Offense</b> score and a <b>Defense</b> score. Each one is the piece's base value plus whatever points you put on it during setup. A capture only goes through if:</p>
+        <p style="color:var(--muted)">Each piece has an <b>Offense</b> score and a <b>Defense</b> score. Each one is the piece's <b>role base</b> (set by who the piece is) plus whatever dice points you put on it during setup. A capture only goes through if:</p>
         <div class="formula"><b>Attacker Offense</b> (base + mod) &ge; <b>Defender Defense</b> (base + mod)</div>
-        <p style="color:var(--muted)">That means a well-built pawn can take a knight, and a queen you made heavily defensive can be very hard to remove.</p>
+        <p style="color:var(--muted)">Out of the box, a Spearman pawn (Offense 2) can take another pawn but not a Knight (Defense 3) — put a couple of dice points on it and it can. A Siege Tower rook (Defense 6) shrugs off most attackers.</p>
       </div>
       <div>
         <h3>&#127922; Allocation Phase</h3>
@@ -205,17 +205,17 @@
       </div>
     </div>
 
-    <h3 style="margin-top:36px">Base stats</h3>
+    <h3 style="margin-top:36px">Base stats by role</h3>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Piece</th><th>Base Offense</th><th>Base Defense</th><th>GP to owner when captured</th></tr></thead>
+        <thead><tr><th>Piece</th><th>Role</th><th>Base Offense</th><th>Base Defense</th><th>GP to owner when captured</th></tr></thead>
         <tbody>
-          <tr><td><span class="p">&#9823;</span>Pawn</td><td>1</td><td>1</td><td>+1</td></tr>
-          <tr><td><span class="p">&#9822;</span>Knight</td><td>3</td><td>3</td><td>+3</td></tr>
-          <tr><td><span class="p">&#9821;</span>Bishop</td><td>3</td><td>3</td><td>+3</td></tr>
-          <tr><td><span class="p">&#9820;</span>Rook</td><td>5</td><td>5</td><td>+5</td></tr>
-          <tr><td><span class="p">&#9819;</span>Queen</td><td>9</td><td>9</td><td>+9</td></tr>
-          <tr><td><span class="p">&#9818;</span>King</td><td>&infin;</td><td>&infin;</td><td>&mdash;</td></tr>
+          <tr><td><span class="p">&#9823;</span>Pawn</td><td>Spearman — expendable front line that strikes first</td><td>2</td><td>1</td><td>+1</td></tr>
+          <tr><td><span class="p">&#9822;</span>Knight</td><td>Cavalry — hard-hitting raider</td><td>4</td><td>3</td><td>+3</td></tr>
+          <tr><td><span class="p">&#9821;</span>Bishop</td><td>Warden — long-range support, well protected</td><td>3</td><td>4</td><td>+3</td></tr>
+          <tr><td><span class="p">&#9820;</span>Rook</td><td>Siege Tower — heavy fortress</td><td>5</td><td>6</td><td>+5</td></tr>
+          <tr><td><span class="p">&#9819;</span>Queen</td><td>Commander — deadliest attacker</td><td>9</td><td>7</td><td>+9</td></tr>
+          <tr><td><span class="p">&#9818;</span>King</td><td>Sovereign — only checkmate stops it</td><td>&infin;</td><td>&infin;</td><td>&mdash;</td></tr>
         </tbody>
       </table>
     </div>
@@ -225,7 +225,7 @@
         <h3>&#128176; Gambit Points (the sacrifice economy)</h3>
         <ul class="clean">
           <li><b>White starts with 10 GP</b> and <b>Black starts with 0</b>.</li>
-          <li>When one of <b>your</b> pieces is captured, <b>you</b> get GP equal to its base value. Losing material pays you.</li>
+          <li>When one of <b>your</b> pieces is captured, <b>you</b> get GP equal to its chess value (the last column). Losing material pays you.</li>
           <li>You spend GP on Gambit Cards and traps.</li>
         </ul>
       </div>
