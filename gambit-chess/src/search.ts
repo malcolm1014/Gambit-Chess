@@ -32,8 +32,8 @@ import type { GameState, PlayerColor } from './types';
 export const EMPTY = 0, P = 1, N = 2, B = 3, R = 4, Q = 5, K = 6, PQ = 7;
 const BASE_VALUE = [0, 1, 3, 3, 5, 9, 0, 9];           // chess value (GP, capture ordering)
 // Role-based built-in stats (must match PIECE_ROLES in engine.ts)
-const ROLE_O = [0, 2, 4, 3, 5, 9, 0, 9];
-const ROLE_D = [0, 1, 3, 4, 6, 7, 0, 7];
+export const ROLE_O = [0, 2, 4, 3, 5, 9, 0, 9];
+export const ROLE_D = [0, 1, 3, 4, 6, 7, 0, 7];
 const TYPE_NAME = ['', 'pawn', 'knight', 'bishop', 'rook', 'queen', 'king', 'queen'];
 
 export const MATE = 100000;
@@ -306,7 +306,7 @@ export class Position {
       const add = (to: number) => {
         const x = b[to];
         if (x === 0) { if (!capturesOnly) moves.push(mk(s, to)); }
-        else if (Math.sign(x) !== us && this.off[s] >= this.def[to]) moves.push(mk(s, to));
+        else if (Math.sign(x) !== us && Math.abs(x) !== K && this.off[s] >= this.def[to]) moves.push(mk(s, to)); // Kings are never captured
       };
       if (t === P) {
         const fr = r - us; // white moves to row-1
@@ -314,8 +314,8 @@ export class Position {
           const fwd = fr * 8 + c;
           const promo = fr === 0 || fr === 7;
           if (b[fwd] === 0 && (!capturesOnly || promo)) moves.push(mk(s, fwd));
-          if (c > 0) { const x = b[fwd - 1]; if (x && Math.sign(x) !== us && this.off[s] >= this.def[fwd - 1]) moves.push(mk(s, fwd - 1)); }
-          if (c < 7) { const x = b[fwd + 1]; if (x && Math.sign(x) !== us && this.off[s] >= this.def[fwd + 1]) moves.push(mk(s, fwd + 1)); }
+          if (c > 0) { const x = b[fwd - 1]; if (x && Math.sign(x) !== us && Math.abs(x) !== K && this.off[s] >= this.def[fwd - 1]) moves.push(mk(s, fwd - 1)); }
+          if (c < 7) { const x = b[fwd + 1]; if (x && Math.sign(x) !== us && Math.abs(x) !== K && this.off[s] >= this.def[fwd + 1]) moves.push(mk(s, fwd + 1)); }
           // Sprint card: 2 squares straight ahead, both empty, costs 3 GP
           const fr2 = r - 2 * us;
           if (!capturesOnly && fr2 >= 0 && fr2 < 8 && b[fwd] === 0 && b[fr2 * 8 + c] === 0 && this.gp[us === 1 ? 0 : 1] >= 3) {

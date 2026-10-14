@@ -18,7 +18,6 @@ interface IntroScreenProps {
   ) => void;
 }
 
-const PIECE_TYPES: PieceType[] = ['pawn', 'knight', 'bishop', 'rook', 'queen', 'king'];
 const ALLOCATABLE: PieceType[] = ['pawn', 'knight', 'bishop', 'rook', 'queen'];
 const fmtStat = (n: number) => (n === Infinity ? '∞' : String(n));
 
@@ -74,7 +73,7 @@ export function IntroScreen({ onCompleteAllocation }: IntroScreenProps) {
   };
 
   const handleAllocate = (pieceType: PieceType, stat: 'modOffense' | 'modDefense', delta: number) => {
-    if (!hasRolled) return;
+    if (!hasRolled || pieceType === 'king') return; // ∞ + n = ∞: points on the King would be wasted
     if (delta > 0 && pointsRemaining < delta) return;
     if (delta < 0 && currentAllocations[pieceType][stat] < Math.abs(delta)) return;
     setPointsRemaining(prev => prev - delta);
@@ -211,7 +210,7 @@ export function IntroScreen({ onCompleteAllocation }: IntroScreenProps) {
             </p>
 
             <div className="allocation-grid">
-              {PIECE_TYPES.map(pieceType => (
+              {ALLOCATABLE.map(pieceType => (
                 <div key={pieceType} className="allocation-item">
                   <strong>{pieceType.toUpperCase()}</strong>
                   <div className="role-title">{PIECE_ROLES[pieceType].title}</div>
@@ -237,6 +236,7 @@ export function IntroScreen({ onCompleteAllocation }: IntroScreenProps) {
                 </div>
               ))}
             </div>
+            <p className="king-note">♚ <b>King — Sovereign:</b> Offense and Defense are already infinite (∞ + any points = ∞), so it needs no points. It can never be captured — only checkmated.</p>
           </>
         )}
       </div>

@@ -222,7 +222,7 @@ function App() {
     for (let r = 0; r < 8; r++) {
       for (let c = 0; c < 8; c++) {
         const piece = newState.board[r][c].piece;
-        if (piece) {
+        if (piece && piece.type !== 'king') { // the King's infinite stats never take modifiers
           const colorAllocations = allocations[piece.color];
           if (colorAllocations && colorAllocations[piece.type]) {
             piece.modOffense = colorAllocations[piece.type].modOffense;

@@ -93,9 +93,11 @@ export function eloUpdate(rating: number, opponent: number, score: number, games
 }
 
 // Elo difference implied by a match score fraction (0..1)
+// Exact inverse of the Elo expectation. A perfect score implies an unbounded gap.
 export function eloFromScore(p: number): number {
-  const q = Math.min(0.999, Math.max(0.001, p));
-  return -400 * Math.log10(1 / q - 1);
+  if (p <= 0) return -Infinity;
+  if (p >= 1) return Infinity;
+  return -400 * Math.log10(1 / p - 1);
 }
 
 // ---------- Chi-square goodness of fit ----------
@@ -137,15 +139,15 @@ function gammaP(a: number, x: number): number {
   return 1 - Math.exp(-x + a * Math.log(x) - logGamma(a)) * h;
 }
 
-// Lanczos approximation of ln Γ(z)
+// ln Γ(z) for z > 0: shift z up with Γ(z) = Γ(z+1)/z, then use Stirling's series
+// with its exact Bernoulli-number coefficients. Accurate to ~1e-15 for the
+// arguments used here (chi-square needs Γ(df/2)).
 function logGamma(z: number): number {
-  const g = 7;
-  const c = [0.99999999999980993, 676.5203681218851, -1259.1392167224028, 771.32342877765313,
-    -176.61566101957853, 12.507343278686905, -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7];
-  if (z < 0.5) return Math.log(Math.PI / Math.sin(Math.PI * z)) - logGamma(1 - z);
-  z -= 1;
-  let x = c[0];
-  for (let i = 1; i < g + 2; i++) x += c[i] / (z + i);
-  const t = z + g + 0.5;
-  return 0.5 * Math.log(2 * Math.PI) + (z + 0.5) * Math.log(t) - t + Math.log(x);
+  if (!(z > 0)) throw new Error('logGamma needs z > 0');
+  let shift = 0;
+  while (z < 15) { shift += Math.log(z); z += 1; }
+  const z2 = z * z;
+  const series = 1 / (12 * z) - 1 / (360 * z * z2) + 1 / (1260 * z * z2 * z2) - 1 / (1680 * z * z2 * z2 * z2)
+    + 1 / (1188 * z * z2 ** 4) - 691 / (360360 * z * z2 ** 5) + 1 / (156 * z * z2 ** 6);
+  return (z - 0.5) * Math.log(z) - z + 0.5 * Math.log(2 * Math.PI) + series - shift;
 }

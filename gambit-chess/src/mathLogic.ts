@@ -7,13 +7,16 @@ export class Rule30PRNG {
   constructor(seed?: number) {
     if (seed === undefined) {
       // Generate a 64-bit random seed to start if none provided
-      const high = BigInt(Math.floor(Math.random() * 0xFFFFFFFF));
-      const low = BigInt(Math.floor(Math.random() * 0xFFFFFFFF));
+      // (2^32 so every 32-bit value, including 0xFFFFFFFF, is possible)
+      const high = BigInt(Math.floor(Math.random() * 2 ** 32));
+      const low = BigInt(Math.floor(Math.random() * 2 ** 32));
       this.state = (high << 32n) | low;
     } else {
-      this.state = BigInt(seed);
+      this.state = BigInt.asUintN(64, BigInt(seed));
     }
-    if (this.state === 0n) this.state = 1n; // 0 state stays 0, avoid it
+    // Rule 30 has exactly two states that die: all zeros stays zero, and all ones
+    // becomes all zeros on the next step. Either would make every roll a 1.
+    if (this.state === 0n || this.state === (1n << 64n) - 1n) this.state = 1n;
   }
 
   private step(): void {
@@ -70,16 +73,46 @@ export function rollAllocationPoolDetailed(): { rolls: number[]; best: number } 
   return { rolls, best: Math.max(...rolls) };
 }
 
+// ---------- Stat arithmetic over the extended reals ----------
+// Stats are non-negative whole numbers or +∞ (the King). The rules of the
+// extended real line apply: ∞ + n = ∞ for every finite n, and ∞ > n.
+// Undefined forms (∞ − ∞) can never occur because no stat is ever negative
+// infinity; addStat refuses them rather than silently producing NaN.
+export const INFINITE = Number.POSITIVE_INFINITY;
+
+export function addStat(...parts: number[]): number {
+  // Validate every part first, so ∞ + (−∞) is rejected rather than absorbed
+  for (const p of parts) {
+    if (Number.isNaN(p) || p === Number.NEGATIVE_INFINITY) throw new Error(`Invalid stat value: ${p}`);
+  }
+  let total = 0;
+  for (const p of parts) {
+    if (p === INFINITE) return INFINITE; // ∞ absorbs every finite addend
+    total += p;
+  }
+  return total;
+}
+
+export const isInfinite = (n: number) => n === INFINITE;
+export const formatStat = (n: number) => (isInfinite(n) ? '∞' : String(n));
+
 // Combat Threshold Logic
 export function getOffense(piece: Piece): number {
-  return piece.baseOffense + piece.modOffense + (piece.tempOffense ?? 0);
+  return addStat(piece.baseOffense, piece.modOffense, piece.tempOffense ?? 0);
 }
 
 export function getDefense(piece: Piece): number {
-  return piece.baseDefense + piece.modDefense;
+  return addStat(piece.baseDefense, piece.modDefense);
 }
 
-// Returns true if attacker can capture defender
+// The King (Sovereign) can never be captured. This is a rule, not a comparison:
+// ∞ ≥ ∞ is not a meaningful contest, so it is decided explicitly here.
+export function isUncapturable(piece: Piece): boolean {
+  return piece.type === 'king' || isInfinite(getDefense(piece));
+}
+
+// Returns true if attacker can capture defender: Offense ≥ Defense on the extended reals
 export function canCapture(attacker: Piece, defender: Piece): boolean {
+  if (isUncapturable(defender)) return false;
   return getOffense(attacker) >= getDefense(defender);
 }

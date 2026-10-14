@@ -555,3 +555,6 @@ body[data-theme="classic"] .dice-roll { background: linear-gradient(135deg, #4a3
 .role-blurb { color: var(--muted); font-size: 0.78rem; line-height: 1.25; margin: 4px 0 6px; min-height: 2.5em; }
 .role-total { font-weight: 700; color: var(--gold-hi); white-space: pre; }
 .role-chip { font-family: var(--body); font-size: 0.75rem; border: 1px solid var(--gold); color: var(--gold-hi); border-radius: 999px; padding: 1px 8px; }
+
+.king-note { color: var(--muted); font-size: 0.92rem; margin: -8px auto 18px; max-width: 640px; }
+.king-note b { color: var(--gold-hi); }
