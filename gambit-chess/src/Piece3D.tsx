@@ -97,13 +97,23 @@ function makeKnightHead(): THREE.ExtrudeGeometry {
   KNIGHT_PROFILE.forEach(([x, y], i) => (i === 0 ? shape.moveTo(x, y) : shape.lineTo(x, y)));
   shape.closePath();
   const geom = new THREE.ExtrudeGeometry(shape, {
-    depth: 0.2, bevelEnabled: true, bevelThickness: 0.05, bevelSize: 0.04, bevelSegments: 4, curveSegments: 8,
+    depth: 0.3, bevelEnabled: true, bevelThickness: 0.06, bevelSize: 0.045, bevelSegments: 4, curveSegments: 8,
   });
-  geom.translate(0, 0, -0.1);
+  geom.translate(0, 0, -0.15);
   geom.computeVertexNormals();
   return geom;
 }
 const KNIGHT_HEAD = makeKnightHead();
+
+// Knights face the opponent, turned slightly toward the centre of the board
+// (so their profile is visible, like a real set). Uses the starting file in the id.
+function knightAngle(piece: PieceType): number {
+  const forward = piece.color === 'white' ? -1 : 1;           // board z direction toward the enemy
+  const file = piece.id.slice(-1);
+  const side = file <= 'd' ? 1 : -1;                          // queen-side knights look right, king-side look left
+  const dx = 0.56 * side, dz = 0.83 * forward;
+  return Math.atan2(-dz, dx);
+}
 
 // Shared materials/parts (defined at module level so they aren't re-created every render)
 // In the classic set every part is plain lacquered wood; the fantasy set adds metal and gems.
@@ -197,17 +207,17 @@ const PieceBody: React.FC<Piece3DProps> = ({ piece, theme = 'classic' }) => {
           </mesh>
           <TrimBand y={0.12} r={0.41} c={c} t={t} />
           {/* Sculpted horse head, facing the opponent */}
-          <group position={[0, 0.4, 0]} rotation={[0, c === 'white' ? Math.PI / 2 : -Math.PI / 2, 0]} scale={1.15}>
+          <group position={[0, 0.4, 0]} rotation={[0, knightAngle(piece), 0]} scale={1.15}>
             <mesh geometry={KNIGHT_HEAD}>
               <BodyMat c={c} t={t} />
             </mesh>
             {t === 'fantasy' && (
               <>
-                <mesh position={[0.24, 0.62, 0.16]}>
+                <mesh position={[0.24, 0.62, 0.22]}>
                   <sphereGeometry args={[0.03, 10, 10]} />
                   <GemMat c={c} t={t} />
                 </mesh>
-                <mesh position={[0.24, 0.62, -0.16]}>
+                <mesh position={[0.24, 0.62, -0.22]}>
                   <sphereGeometry args={[0.03, 10, 10]} />
                   <GemMat c={c} t={t} />
                 </mesh>
