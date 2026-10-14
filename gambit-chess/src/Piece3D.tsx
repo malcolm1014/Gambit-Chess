@@ -35,7 +35,7 @@ const createProfileGeometry = (points: [number, number][]) => {
 
 export const Piece3D: React.FC<Piece3DProps> = ({ piece }) => {
   const mat = materialProps[piece.color];
-  const Material = () => <meshPhysicalMaterial {...mat} castShadow receiveShadow />;
+  const Material = () => <meshPhysicalMaterial {...mat} />;
 
   // Pre-compute geometries with highly refined, realistic chess profiles (Staunton style)
   const pawnGeom = useMemo(() => createProfileGeometry([

@@ -4,4 +4,9 @@ import { defineConfig } from 'vite'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
+  base: './', // Use relative paths for assets
+  build: {
+    outDir: '../docs/play', // Output to docs/play for GitHub pages
+    emptyOutDir: true,
+  }
 })

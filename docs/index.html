@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gambit Chess - A Mathematically Rigorous Strategy Game</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f1f5f9;
+            color: #334155;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 800px;
+            background: #ffffff;
+            padding: 3rem;
+            border-radius: 12px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            text-align: center;
+        }
+        h1 {
+            color: #1e3a8a;
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+        .subtitle {
+            font-size: 1.2rem;
+            color: #64748b;
+            margin-bottom: 2rem;
+        }
+        p {
+            font-size: 1.1rem;
+            text-align: left;
+            margin-bottom: 1.5rem;
+        }
+        .features {
+            text-align: left;
+            background: #f8fafc;
+            padding: 1.5rem;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            margin-bottom: 2rem;
+        }
+        .features h3 {
+            margin-top: 0;
+            color: #0f172a;
+        }
+        .features ul {
+            padding-left: 1.5rem;
+        }
+        .play-button {
+            display: inline-block;
+            background-color: #2563eb;
+            color: white;
+            font-size: 1.25rem;
+            font-weight: bold;
+            padding: 1rem 2.5rem;
+            text-decoration: none;
+            border-radius: 8px;
+            transition: background-color 0.2s, transform 0.1s;
+            box-shadow: 0 4px 6px rgba(37, 99, 235, 0.2);
+        }
+        .play-button:hover {
+            background-color: #1d4ed8;
+            transform: translateY(-2px);
+        }
+        .play-button:active {
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Gambit Chess</h1>
+    <div class="subtitle">Classic strategy, redefined by modern mechanics.</div>
+
+    <p>
+        Welcome to <strong>Gambit Chess</strong>. This is not your standard game of chess. Gambit Chess introduces RPG-style stat allocation, a resource economy, and hidden information mechanics wrapped in a sleek, modern 3D interface.
+    </p>
+
+    <div class="features">
+        <h3>Why Gambit Chess is Different:</h3>
+        <ul>
+            <li><strong>Combat Thresholds:</strong> Standard movement applies, but you can only capture an enemy piece if your Total Offense mathematically exceeds their Total Defense.</li>
+            <li><strong>Pre-Game Allocation:</strong> Roll a Wolfram Rule 30 generated dice pool to secretly allocate stat modifiers (+Offense or +Defense) to your pieces before the game begins.</li>
+            <li><strong>Gambit Points (GP):</strong> Earn GP when you sacrifice pieces. Use your GP economy to activate special cards.</li>
+            <li><strong>Hidden Traps:</strong> Spend GP to place hidden traps on your side of the board. Enemy pieces are destroyed instantly upon stepping on them.</li>
+        </ul>
+    </div>
+
+    <a href="./play/index.html" class="play-button">Play the Game</a>
+</div>
+
+</body>
+</html>

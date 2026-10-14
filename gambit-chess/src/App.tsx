@@ -7,6 +7,7 @@ import { GambitCard } from './GambitCard';
 import type { CardData } from './GambitCard';
 import { getComputerMove } from './ai';
 import { IntroScreen } from './IntroScreen';
+import type { GameState } from './types';
 import './index.css';
 
 const DEFAULT_DECK: CardData[] = [
@@ -156,7 +157,7 @@ function App() {
       />
 
       <div className="history">
-        {gameState.history.map((msg, idx) => (
+        {gameState.history.map((msg: string, idx: number) => (
           <div key={idx}>{msg}</div>
         ))}
         {gameState.history.length === 0 && <div>Game started. Awaiting first move...</div>}

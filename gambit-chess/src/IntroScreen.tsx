@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import type { GameState, PlayerColor, PieceType } from './types';
 
 interface IntroScreenProps {
