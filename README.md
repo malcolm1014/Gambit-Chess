@@ -34,7 +34,7 @@ Chess with RPG stats, dice, a sacrifice economy and hidden traps — playable fr
   - `src/stats.ts`: dice odds, win probability, Elo, chi-square
   - `src/audit.test.ts`: the math audit (runs before every deploy)
   - `simulate.ts`: 100 computer-vs-computer games
-  - `stress.ts`: 100-game adversarial stress test (traps, cards, GP farming)
+  - `stress.ts`: 1,000-game maximum stress test (card spam, chaos monkey, the game screen's computer path, GP farming)
 - `.github/workflows/deploy.yml`: tests, builds and publishes to GitHub Pages on every push to `main`
 
 ## Commands (inside `gambit-chess/`)
@@ -44,5 +44,5 @@ npm ci            # install
 npm run dev       # play locally
 npx vitest run    # run the math audit
 npx tsx simulate.ts
-npx tsx stress.ts 100 20
+npx tsx stress.ts 0 1000
 ```
