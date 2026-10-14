@@ -19,6 +19,7 @@ interface IntroScreenProps {
 }
 
 const PIECE_TYPES: PieceType[] = ['pawn', 'knight', 'bishop', 'rook', 'queen', 'king'];
+const ALLOCATABLE: PieceType[] = ['pawn', 'knight', 'bishop', 'rook', 'queen'];
 const fmtStat = (n: number) => (n === Infinity ? '∞' : String(n));
 
 const emptyAllocation = (): AllocationState => ({
@@ -35,7 +36,8 @@ const emptyAllocation = (): AllocationState => ({
 function autoAllocate(base: AllocationState, points: number): AllocationState {
   const result: AllocationState = JSON.parse(JSON.stringify(base));
   for (let i = 0; i < points; i++) {
-    const type = PIECE_TYPES[Math.floor(Math.random() * PIECE_TYPES.length)];
+    // The King's stats are already infinite, so points there would be wasted
+    const type = ALLOCATABLE[Math.floor(Math.random() * ALLOCATABLE.length)];
     const stat = Math.random() < 0.5 ? 'modOffense' : 'modDefense';
     result[type][stat] += 1;
   }
