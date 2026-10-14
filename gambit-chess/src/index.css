@@ -424,3 +424,59 @@ h1 {
   .dice-roll { width: 64px; height: 64px; }
   .game-header h1 { font-size: 1.5rem; }
 }
+
+/* ============ Engine & statistics ============ */
+.eval-bar {
+  position: relative;
+  width: 100%;
+  height: 26px;
+  margin-bottom: 12px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: linear-gradient(90deg, #2a1f33, #120d17);
+  border: 1px solid var(--border);
+  box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.6);
+  font-family: var(--head);
+  font-size: 0.8rem;
+}
+.eval-fill {
+  position: absolute; inset: 0 auto 0 0;
+  background: linear-gradient(90deg, #8a6a1c, var(--gold) 70%, var(--gold-hi));
+  transition: width 0.6s ease;
+}
+.eval-label { position: absolute; top: 50%; transform: translateY(-50%); font-weight: 800; letter-spacing: 0.05em; }
+.eval-label.light { left: 12px; color: #1a1205; }
+.eval-label.shadow { right: 12px; color: #ff8f9f; }
+.eval-label.mid { left: 50%; transform: translate(-50%, -50%); color: var(--parchment); text-shadow: 0 0 6px #000, 0 0 2px #000; }
+
+.oracle-panel {
+  width: 100%;
+  margin-top: 14px;
+  padding: 12px 16px;
+  background: linear-gradient(180deg, var(--panel-2), var(--panel));
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: inset 0 0 0 1px rgba(127, 107, 255, 0.18), 0 10px 30px rgba(0, 0, 0, 0.45);
+}
+.oracle-panel h3 { margin: 0 0 8px; font-size: 0.8rem; color: #b9a7ff; text-transform: uppercase; letter-spacing: 0.18em; }
+.oracle-panel h3 small { font-family: var(--body); text-transform: none; letter-spacing: 0; color: var(--muted); font-size: 0.85rem; }
+.oracle-stats { display: flex; flex-wrap: wrap; gap: 6px 18px; color: var(--muted); }
+.oracle-stats b { color: var(--parchment); }
+.oracle-pv { margin-top: 6px; font-family: ui-monospace, Consolas, monospace; font-size: 0.85rem; color: #cfc3ff; word-spacing: 4px; overflow-wrap: anywhere; }
+
+.rating-change { font-family: var(--body); font-size: 0.95rem; color: var(--gold-hi); }
+
+.difficulty-selector { width: 100%; margin-top: 14px; }
+.difficulty-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.difficulty-options button { display: flex; flex-direction: column; gap: 2px; text-align: left; padding: 10px 12px; }
+.difficulty-options button strong { font-family: var(--head); color: var(--gold-hi); }
+.difficulty-options button small { color: var(--muted); font-weight: 400; font-size: 0.82rem; }
+.difficulty-options button small.rating { color: #b9a7ff; }
+
+.dice-stats { margin-top: 14px; }
+.dice-hist { width: 100%; height: 70px; display: block; }
+.dice-hist .bar { fill: rgba(212, 169, 55, 0.35); }
+.dice-hist .bar.you { fill: var(--ember); }
+.dice-axis { display: flex; justify-content: space-between; color: var(--muted); font-size: 0.75rem; margin-top: 2px; }
+.dice-facts { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 18px; margin-top: 8px; color: var(--muted); font-size: 0.95rem; }
+.dice-facts b { color: var(--parchment); }

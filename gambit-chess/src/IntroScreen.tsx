@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import type { GameState, PlayerColor, PieceType } from './types';
 import { rollAllocationPoolDetailed } from './mathLogic';
+import { ALLOCATION_DIST, percentile, headToHead } from './stats';
+import { LEVELS } from './search';
+import type { Difficulty } from './search';
 
 type AllocationState = Record<PieceType, { modOffense: number, modDefense: number }>;
 
@@ -9,7 +12,8 @@ interface IntroScreenProps {
   onCompleteAllocation: (
     allocations: { white: AllocationState, black: AllocationState },
     selectedMode: 'pvp' | 'pvc',
-    dicePools: { white: number, black: number }
+    dicePools: { white: number, black: number },
+    difficulty: Difficulty
   ) => void;
 }
 
@@ -40,6 +44,7 @@ interface RollResult { rolls: number[]; best: number }
 
 export function IntroScreen({ onCompleteAllocation }: IntroScreenProps) {
   const [mode, setMode] = useState<'pvp' | 'pvc'>('pvc');
+  const [difficulty, setDifficulty] = useState<Difficulty>('knight');
   const [currentPlayer, setCurrentPlayer] = useState<PlayerColor>('white');
   const [rolls, setRolls] = useState<{ white: RollResult | null, black: RollResult | null }>({ white: null, black: null });
   const [rolling, setRolling] = useState(false);
@@ -96,7 +101,8 @@ export function IntroScreen({ onCompleteAllocation }: IntroScreenProps) {
         onCompleteAllocation(
           { white: finalCurrent, black: autoAllocate(emptyAllocation(), aiRoll.best) },
           mode,
-          { white: currentRoll.best, black: aiRoll.best }
+          { white: currentRoll.best, black: aiRoll.best },
+          difficulty
         );
       } else {
         setWhiteAllocations(finalCurrent);
@@ -107,7 +113,8 @@ export function IntroScreen({ onCompleteAllocation }: IntroScreenProps) {
       onCompleteAllocation(
         { white: whiteAllocations, black: finalCurrent },
         mode,
-        { white: rolls.white!.best, black: currentRoll.best }
+        { white: rolls.white!.best, black: currentRoll.best },
+        difficulty
       );
     }
   };
@@ -150,6 +157,20 @@ export function IntroScreen({ onCompleteAllocation }: IntroScreenProps) {
           >
             2 Player (Local)
           </button>
+          {mode === 'pvc' && (
+            <div className="difficulty-selector">
+              <h3>Computer Strength</h3>
+              <div className="difficulty-options">
+                {(Object.keys(LEVELS) as Difficulty[]).map(d => (
+                  <button key={d} className={difficulty === d ? 'active-mode' : ''} onClick={() => setDifficulty(d)}>
+                    <strong>{LEVELS[d].label}</strong>
+                    <small>{LEVELS[d].blurb}</small>
+                    <small className="rating">est. {LEVELS[d].rating} Elo</small>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -174,6 +195,7 @@ export function IntroScreen({ onCompleteAllocation }: IntroScreenProps) {
             {rolling ? 'Rolling…' : hasRolled ? '🎲 Re-roll Dice' : '🎲 Roll Dice'}
           </button>
           {currentRoll && <p>You rolled <strong>{currentRoll.best}</strong> points (best of three). Re-rolling resets your allocation.</p>}
+          <DiceStats value={currentRoll?.best ?? null} />
         </div>
 
         {hasRolled && (
@@ -215,6 +237,33 @@ export function IntroScreen({ onCompleteAllocation }: IntroScreenProps) {
       {hasRolled && pointsRemaining > 0 && (
         <p className="hint">Unspent points will be assigned automatically.</p>
       )}
+    </div>
+  );
+}
+
+// Exact distribution of the allocation roll with the player's result highlighted
+function DiceStats({ value }: { value: number | null }) {
+  const d = ALLOCATION_DIST;
+  const lo = 14, hi = 48; // values below 14 have probability < 0.0001%
+  const maxP = Math.max(...d.pmf);
+  const w = 100 / (hi - lo + 1);
+  const h2h = value !== null ? headToHead(d.pmf, value) : null;
+  return (
+    <div className="dice-stats">
+      <svg viewBox="0 0 100 34" preserveAspectRatio="none" className="dice-hist" aria-label="Probability of each best-of-three total">
+        {d.pmf.slice(lo, hi + 1).map((p, i) => {
+          const x = lo + i, bh = (p / maxP) * 30;
+          return <rect key={x} x={i * w + w * 0.1} y={32 - bh} width={w * 0.8} height={bh}
+            className={value === x ? 'bar you' : 'bar'}><title>{`${x}: ${(p * 100).toFixed(2)}%`}</title></rect>;
+        })}
+      </svg>
+      <div className="dice-axis"><span>{lo}</span><span>Exact odds of each total (best of three 6d8)</span><span>{hi}</span></div>
+      <div className="dice-facts">
+        <span>Average <b>{d.mean.toFixed(1)}</b></span>
+        <span>Std dev <b>{d.sd.toFixed(1)}</b></span>
+        {value !== null && <span>Your roll: <b>{percentile(d.pmf, value).toFixed(0)}th</b> percentile</span>}
+        {h2h && <span>Beats the opponent's roll <b>{(h2h.win * 100).toFixed(0)}%</b> · ties {(h2h.tie * 100).toFixed(0)}%</span>}
+      </div>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { createInitialState, executeMove, placeTrap, playRally, isGameOver, getLegalMoves } from './engine';
 import { getOffense, getDefense } from './mathLogic';
 import { rollAllocationPool } from './mathLogic';
@@ -6,7 +6,11 @@ import { useEffect } from 'react';
 import { Board3D } from './Board3D';
 import { GambitCard } from './GambitCard';
 import type { CardData } from './GambitCard';
-import { getComputerMove } from './ai';
+import { planComputerTurn } from './ai';
+import type { ComputerTurn } from './ai';
+import { LEVELS } from './search';
+import type { Difficulty, SearchInfo } from './search';
+import { winProbability, eloUpdate } from './stats';
 import { IntroScreen } from './IntroScreen';
 import type { GameState } from './types';
 import './index.css';
@@ -21,6 +25,23 @@ const cap = (s?: string | null) => (s ? s.charAt(0).toUpperCase() + s.slice(1) :
 const PIECE_ICON: Record<string, string> = { king: '♚', queen: '♛', rook: '♜', bishop: '♝', knight: '♞', pawn: '♟' };
 const fmt = (n: number) => (n === Infinity ? '∞' : String(n));
 
+// Player rating vs the computer, kept in this browser only
+const RATING_KEY = 'gambit-chess-rating';
+type Rating = { rating: number; games: number };
+function loadRating(): Rating {
+  try { const r = JSON.parse(localStorage.getItem(RATING_KEY) ?? ''); if (typeof r?.rating === 'number') return r; } catch { /* ignore */ }
+  return { rating: 1200, games: 0 };
+}
+function saveRating(r: Rating) { try { localStorage.setItem(RATING_KEY, JSON.stringify(r)); } catch { /* ignore */ } }
+
+// The search runs in a Web Worker so the board stays smooth while it thinks
+function makeWorker(): Worker | null {
+  try { return new Worker(new URL('./search.worker.ts', import.meta.url), { type: 'module' }); } catch { return null; }
+}
+
+const fmtScore = (cp: number, mate: number | null) =>
+  mate !== null ? `${mate > 0 ? '' : '-'}M${Math.abs(mate)}` : `${cp >= 0 ? '+' : ''}${(cp / 100).toFixed(2)}`;
+
 function App() {
   const [gameState, setGameState] = useState<GameState>(() =>
     createInitialState(rollAllocationPool(), rollAllocationPool())
@@ -30,6 +51,14 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [gameMode, setGameMode] = useState<'pvp' | 'pvc'>('pvc'); // default player vs computer
   const [pendingAction, setPendingAction] = useState<{type: 'trap' | 'rally' | 'sprint', card: CardData} | null>(null);
+  const [difficulty, setDifficulty] = useState<Difficulty>('knight');
+  const [engineInfo, setEngineInfo] = useState<SearchInfo | null>(null);
+  const [evalWhite, setEvalWhite] = useState<{ cp: number; mate: number | null } | null>(null);
+  const [rating, setRating] = useState<Rating>(loadRating);
+  const [ratingDelta, setRatingDelta] = useState<number | null>(null);
+  const workerRef = useRef<Worker | null>(null);
+  const requestId = useRef(0);
+  const ratedGame = useRef(false);
 
   const gameOver = isGameOver(gameState);
   const isComputerTurn = gameMode === 'pvc' && gameState.turn === 'black';
@@ -40,26 +69,57 @@ function App() {
         .map(m => m.to)
     : [];
 
+  // Apply the computer's decision (optional trap + move) to the current state
+  const applyComputerTurn = (base: GameState, turn: ComputerTurn) => {
+    let next = base;
+    try {
+      if (turn.trap) next = placeTrap(next, turn.trap, base.turn);
+      if (turn.move) next = executeMove(next, turn.move.from, turn.move.to, { sprint: turn.move.sprint });
+      setGameState(next);
+    } catch (e: any) {
+      console.error('Engine move failed', e);
+    }
+    if (turn.info) {
+      setEngineInfo(turn.info);
+      // The engine scores from Black's point of view; convert to White's
+      setEvalWhite({ cp: -turn.info.scoreCp, mate: turn.info.mateIn === null ? null : -turn.info.mateIn });
+    }
+  };
+
   useEffect(() => {
     if (gameState.phase === 'main' && !isGameOver(gameState) && gameMode === 'pvc' && gameState.turn === 'black') {
-      // Computer's turn
-      const timer = setTimeout(() => {
-        const move = getComputerMove(gameState);
-        if (move) {
-          try {
-            const newState = executeMove(gameState, move.from, move.to);
-            setGameState(newState);
-          } catch (e: any) {
-            console.error("AI Move failed", e);
-          }
-        } else {
-           // Should not happen: the engine marks checkmate/stalemate when a side has no moves
-           console.log("AI has no valid moves.");
-        }
-      }, 500); // 500ms delay for visual effect
-      return () => clearTimeout(timer);
+      const id = ++requestId.current;
+      const base = gameState;
+      workerRef.current ??= makeWorker();
+      const worker = workerRef.current;
+      if (worker) {
+        worker.onmessage = (e: MessageEvent<ComputerTurn & { id: number }>) => {
+          if (e.data.id !== requestId.current) return; // stale answer from an old game
+          applyComputerTurn(base, e.data);
+        };
+        worker.onerror = () => {
+          // Fall back to searching on the main thread
+          workerRef.current = null;
+          applyComputerTurn(base, planComputerTurn(base, difficulty));
+        };
+        worker.postMessage({ id, state: base, level: difficulty });
+      } else {
+        const timer = setTimeout(() => applyComputerTurn(base, planComputerTurn(base, difficulty)), 50);
+        return () => clearTimeout(timer);
+      }
     }
-  }, [gameState, gameMode]);
+  }, [gameState, gameMode, difficulty]);
+
+  // Update the player's Elo once per finished game against the computer
+  useEffect(() => {
+    if (!gameOver || gameMode !== 'pvc' || ratedGame.current) return;
+    ratedGame.current = true;
+    const score = gameState.winner === 'white' ? 1 : gameState.winner === 'black' ? 0 : 0.5;
+    const updated = { rating: eloUpdate(rating.rating, LEVELS[difficulty].rating, score, rating.games), games: rating.games + 1 };
+    setRatingDelta(updated.rating - rating.rating);
+    setRating(updated);
+    saveRating(updated);
+  }, [gameOver, gameMode, gameState.winner, difficulty, rating]);
 
   const handleSquareClick = (row: number, col: number) => {
     // Ignore clicks after the game ends, or while the computer is thinking
@@ -139,7 +199,8 @@ function App() {
     }
   };
 
-  const handleCompleteAllocation = (allocations: any, selectedMode: 'pvp' | 'pvc', dicePools?: { white: number, black: number }) => {
+  const handleCompleteAllocation = (allocations: any, selectedMode: 'pvp' | 'pvc', dicePools?: { white: number, black: number }, level?: Difficulty) => {
+    if (level) setDifficulty(level);
     // Apply allocations to the board pieces
     const newState = { ...gameState };
     if (dicePools) {
@@ -173,6 +234,11 @@ function App() {
     setSelectedSquare(null);
     setError(null);
     setPendingAction(null);
+    setEngineInfo(null);
+    setEvalWhite(null);
+    setRatingDelta(null);
+    ratedGame.current = false;
+    requestId.current++;
     setGameState(createInitialState(rollAllocationPool(), rollAllocationPool()));
   };
 
@@ -212,6 +278,11 @@ function App() {
             {gameState.status === 'stalemate' && 'Stalemate — the game is a draw.'}
             {gameState.status === 'draw' && 'Draw — 50 moves each without a capture.'}
           </strong>
+          {gameMode === 'pvc' && ratingDelta !== null && (
+            <span className="rating-change">
+              Your rating: {rating.rating} ({ratingDelta >= 0 ? '+' : ''}{ratingDelta}) vs {LEVELS[difficulty].label}
+            </span>
+          )}
           <button onClick={handleNewGame}>Play Again</button>
         </div>
       )}
@@ -221,6 +292,17 @@ function App() {
           {gameState.inCheck && <span className="check-badge">{cap(gameState.inCheck)} is in CHECK</span>}
         </div>
       )}
+      {gameMode === 'pvc' && evalWhite && (() => {
+        const p = evalWhite.mate !== null ? (evalWhite.mate > 0 ? 1 : 0) : winProbability(evalWhite.cp);
+        return (
+          <div className="eval-bar" title="Win probability from the engine's evaluation: 1 / (1 + 10^(−eval/400))">
+            <div className="eval-fill" style={{ width: `${(p * 100).toFixed(1)}%` }} />
+            <span className="eval-label light">☀ {(p * 100).toFixed(0)}%</span>
+            <span className="eval-label mid">{fmtScore(evalWhite.cp, evalWhite.mate)}</span>
+            <span className="eval-label shadow">{((1 - p) * 100).toFixed(0)}% ☾</span>
+          </div>
+        );
+      })()}
       {error && <div className="error">{error}</div>}
       {pendingAction && (
         <div className="status-message">
@@ -269,6 +351,26 @@ function App() {
           </div>
         </div>
       </div>
+
+      {gameMode === 'pvc' && (
+        <div className="oracle-panel">
+          <h3>Oracle <small>— {LEVELS[difficulty].label} engine · your rating {rating.rating}{rating.games ? ` (${rating.games} game${rating.games === 1 ? '' : 's'})` : ''}</small></h3>
+          {engineInfo ? (
+            <>
+              <div className="oracle-stats">
+                <span>Depth <b>{engineInfo.depth}</b>/{engineInfo.seldepth}</span>
+                <span>Nodes <b>{engineInfo.nodes.toLocaleString()}</b></span>
+                <span>Speed <b>{(engineInfo.nps / 1000).toFixed(0)}k</b>/s</span>
+                <span>Time <b>{(engineInfo.timeMs / 1000).toFixed(2)}s</b></span>
+                <span>Eval <b>{evalWhite ? fmtScore(evalWhite.cp, evalWhite.mate) : '—'}</b> (Light)</span>
+              </div>
+              <div className="oracle-pv">Expected line: {engineInfo.pv.slice(0, 8).join('  ') || '—'}</div>
+            </>
+          ) : (
+            <p className="stat-note">The engine reports its search after its first move.</p>
+          )}
+        </div>
+      )}
 
       <div className="cards-container">
         {DEFAULT_DECK.map(card => {
