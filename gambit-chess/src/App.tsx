@@ -96,9 +96,13 @@ function App() {
     }
   };
 
-  const handleCompleteAllocation = (allocations: any, selectedMode: 'pvp' | 'pvc') => {
+  const handleCompleteAllocation = (allocations: any, selectedMode: 'pvp' | 'pvc', dicePools?: { white: number, black: number }) => {
     // Apply allocations to the board pieces
     const newState = { ...gameState };
+    if (dicePools) {
+      newState.players.white.dicePool = dicePools.white;
+      newState.players.black.dicePool = dicePools.black;
+    }
 
     // Apply stats to pieces
     for (let r = 0; r < 8; r++) {
@@ -121,6 +125,14 @@ function App() {
     setGameMode(selectedMode);
   };
 
+  // Start a fresh game: new board, new dice, back to the allocation screen
+  const handleNewGame = () => {
+    setSelectedSquare(null);
+    setError(null);
+    setPendingAction(null);
+    setGameState(createInitialState(rollAllocationPool(), rollAllocationPool()));
+  };
+
   if (gameState.phase === 'allocation') {
     return (
       <IntroScreen
@@ -133,6 +145,7 @@ function App() {
   return (
     <div className="app-container">
       <h1>Gambit Chess</h1>
+      <button className="new-game-button" onClick={handleNewGame}>New Game (re-roll dice)</button>
 
       <div className="stats">
         <div className={`player-stat ${gameState.turn === 'white' ? 'active' : ''}`}>

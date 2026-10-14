@@ -63,6 +63,13 @@ export function rollAllocationPool(): number {
   return Math.max(...rolls);
 }
 
+// Same as rollAllocationPool, but also returns the three individual 6d8 totals
+// so the UI can show the player what was rolled.
+export function rollAllocationPoolDetailed(): { rolls: number[]; best: number } {
+  const rolls = [rollDice(6, 8), rollDice(6, 8), rollDice(6, 8)];
+  return { rolls, best: Math.max(...rolls) };
+}
+
 // Combat Threshold Logic
 export function getOffense(piece: Piece): number {
   return piece.baseOffense + piece.modOffense;
