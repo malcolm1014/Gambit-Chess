@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Environment, ContactShadows, Sparkles } from '@react-three/drei';
 import * as THREE from 'three';
@@ -192,7 +192,8 @@ export const Board3D: React.FC<Board3DProps> = ({ gameState, onSquareClick, sele
               shadow-camera-left={-6} shadow-camera-right={6} shadow-camera-top={6} shadow-camera-bottom={-6}
             />
             <directionalLight position={[-5, 6, -4]} intensity={0.35} color="#ffe2c0" />
-            <Environment preset="apartment" />
+            {/* Reflections load in the background so the board appears immediately */}
+            <Suspense fallback={null}><Environment preset="apartment" /></Suspense>
           </>
         ) : (
           <>
@@ -205,7 +206,8 @@ export const Board3D: React.FC<Board3DProps> = ({ gameState, onSquareClick, sele
               shadow-camera-left={-6} shadow-camera-right={6} shadow-camera-top={6} shadow-camera-bottom={-6}
             />
             <directionalLight position={[-6, 4, -4]} intensity={0.4} color="#7f6bff" />
-            <Environment preset="night" />
+            {/* Reflections load in the background so the board appears immediately */}
+            <Suspense fallback={null}><Environment preset="night" /></Suspense>
             <Sparkles count={70} scale={[11, 3, 11]} position={[0, 1.6, 0]} size={2.2} speed={0.25} color="#ffd27a" opacity={0.6} />
             <Torch position={[-4.9, 0.6, -4.9]} />
             <Torch position={[4.9, 0.6, -4.9]} />

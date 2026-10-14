@@ -546,3 +546,6 @@ body[data-theme="classic"] .side-black .side-name { color: #d9c3a5; }
 body[data-theme="classic"] .oracle-panel h3 { color: var(--gold); }
 body[data-theme="classic"] .oracle-pv { color: var(--gold-hi); }
 body[data-theme="classic"] .board-container { background: #1b130d; }
+body[data-theme="classic"] .gambit-card { background: linear-gradient(180deg, #3a2a1d, #241910); }
+body[data-theme="classic"] .card-art { background: radial-gradient(circle at 50% 60%, color-mix(in srgb, var(--card-glow) 16%, transparent), transparent 70%), #1d140d; }
+body[data-theme="classic"] .dice-roll { background: linear-gradient(135deg, #4a3624, #2a1d13); }
