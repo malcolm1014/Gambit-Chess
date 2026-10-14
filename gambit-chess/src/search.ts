@@ -54,6 +54,7 @@ const KNIGHT_D = [[-2, -1], [-2, 1], [-1, -2], [-1, 2], [1, -2], [1, 2], [2, -1]
 const KING_D = [[-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0], [1, 1]];
 const ROOK_D = [[-1, 0], [1, 0], [0, -1], [0, 1]];
 const BISHOP_D = [[-1, -1], [-1, 1], [1, -1], [1, 1]];
+const QUEEN_D = [...ROOK_D, ...BISHOP_D];
 const onBoard = (r: number, c: number) => r >= 0 && r < 8 && c >= 0 && c < 8;
 
 // Precomputed target lists
@@ -323,7 +324,7 @@ export class Position {
       } else if (t === K) {
         for (const to of KING_T[s]) add(to);
       } else {
-        const dirs = t === B ? BISHOP_D : t === R ? ROOK_D : [...ROOK_D, ...BISHOP_D];
+        const dirs = t === B ? BISHOP_D : t === R ? ROOK_D : QUEEN_D;
         for (const [dr, dc] of dirs) {
           let rr = r + dr, cc = c + dc;
           while (rr >= 0 && rr < 8 && cc >= 0 && cc < 8) {
@@ -443,7 +444,7 @@ export class Position {
         let mob = 0;
         if (t === N) { for (const to of KNIGHT_T[s]) if (Math.sign(b[to]) !== col) mob++; }
         else {
-          const dirs = t === B ? BISHOP_D : t === R ? ROOK_D : [...ROOK_D, ...BISHOP_D];
+          const dirs = t === B ? BISHOP_D : t === R ? ROOK_D : QUEEN_D;
           const r = s >> 3, c = s & 7;
           for (const [dr, dc] of dirs) {
             let rr = r + dr, cc = c + dc;
