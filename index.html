@@ -130,6 +130,7 @@
       <a href="#rules">Rules</a>
       <a href="#cards">Cards</a>
       <a href="#tips">Strategy</a>
+      <a href="#math">The Math</a>
       <a href="#faq">FAQ</a>
     </div>
   </div>
@@ -195,12 +196,12 @@
       <div>
         <h3>&#9876; The Combat Threshold</h3>
         <p style="color:var(--muted)">Each piece has an <b>Offense</b> score and a <b>Defense</b> score. Each one is the piece's <b>role base</b> (set by who the piece is) plus whatever dice points you put on it during setup. A capture only goes through if:</p>
-        <div class="formula"><b>Attacker Offense</b> (base + mod) &ge; <b>Defender Defense</b> (base + mod)</div>
+        <div class="formula"><b>Attacker Offense</b> (base + dice + Rally) &ge; <b>Defender Defense</b> (base + dice)</div>
         <p style="color:var(--muted)">Out of the box, a Spearman pawn (Offense 2) can take another pawn but not a Knight (Defense 3) — put a couple of dice points on it and it can. A Siege Tower rook (Defense 6) shrugs off most attackers.</p>
       </div>
       <div>
         <h3>&#127922; Allocation Phase</h3>
-        <p style="color:var(--muted)">Each side rolls <b>6d8 three times and keeps the best total</b>, which comes to somewhere between 6 and 48 points. The dice use a <b>Wolfram Rule 30</b> cellular-automaton random number generator. Points go to a <b>piece type</b>, so +2 Offense on Pawn gives all eight pawns +2 Offense.</p>
+        <p style="color:var(--muted)">Each side rolls <b>6d8 three times and keeps the best total</b>: anywhere from 6 to 48 points, 31.8 on average (about 60% of rolls land between 29 and 35). The dice use a <b>Wolfram Rule 30</b> cellular-automaton random number generator. Points go to a <b>piece type</b>, so +2 Offense on Pawn gives all eight pawns +2 Offense. The King takes no points: its stats are already infinite.</p>
         <p style="color:var(--muted)">In 2-player mode, White allocates first and Black allocates second. Have your opponent look away while you set yours.</p>
       </div>
     </div>
@@ -233,7 +234,7 @@
         <h3>&#128163; Hidden traps</h3>
         <ul class="clean">
           <li>A trap costs <b>6 GP</b> (it's the Pitfall card).</li>
-          <li>You can only place one on <b>your half</b> of the board, and only one trap per square.</li>
+          <li>Traps go on empty squares on <b>your half</b> of the board (ranks 1–4 for White, 5–8 for Black), one per square. Placing one doesn't use up your move.</li>
           <li>When an enemy piece lands on it, the piece is <b>destroyed</b> (its owner gets no GP) and the trap is used up. Kings are immune. Your own pieces can stand on it safely.</li>
         </ul>
       </div>
@@ -246,7 +247,7 @@
         <li><b>Knights, bishops, rooks and queens</b> move as in chess. Only knights jump over pieces.</li>
         <li><b>Kings</b> move one square in any direction. There's no castling.</li>
         <li><b>Check &amp; checkmate:</b> the King's Defense is infinite, so it can't be captured. Just like chess, you win by <b>checkmate</b>, and you can't make a move that leaves your own King in check.</li>
-        <li><b>Other endings:</b> traps can't hurt a King: its Defense is infinite, so the trap is simply used up. A side with no legal moves that isn't in check is a <b>stalemate</b> (draw). 50 moves each without a capture is also a draw.</li>
+        <li><b>Draws:</b> a side with no legal moves that isn't in check is a <b>stalemate</b>. 50 moves each with no piece captured or trapped is also a draw. Traps can't hurt a King — its Defense is infinite, so the trap is simply used up.</li>
       </ul>
     </div>
   </div>
@@ -258,8 +259,8 @@
     <h2>Gambit Cards</h2>
     <p class="sub">You'll see these cards under the board. A card you can't afford is greyed out.</p>
     <div class="grid g3">
-      <div class="gcard buff"><div class="top">Rally <span class="cost">2 GP</span></div><div class="art"></div><div class="body">Give one of your pieces +2 Offense for this turn. Play it, then make your capture.</div><div class="foot"><span>Buff</span><span class="tag on">Playable</span></div></div>
-      <div class="gcard trap"><div class="top">Pitfall <span class="cost">6 GP</span></div><div class="art"></div><div class="body">Place a hidden trap. Enemy unit is destroyed upon entering.</div><div class="foot"><span>Trap</span><span class="tag on">Playable</span></div></div>
+      <div class="gcard buff"><div class="top">Rally <span class="cost">2 GP</span></div><div class="art"></div><div class="body">Give one of your pieces +2 Offense until you move. Play it, then make your capture.</div><div class="foot"><span>Buff</span><span class="tag on">Playable</span></div></div>
+      <div class="gcard trap"><div class="top">Pitfall <span class="cost">6 GP</span></div><div class="art"></div><div class="body">Hide a trap on your half. An enemy piece that enters is destroyed (Kings are immune). Doesn't use your move.</div><div class="foot"><span>Trap</span><span class="tag on">Playable</span></div></div>
       <div class="gcard move"><div class="top">Sprint <span class="cost">3 GP</span></div><div class="art"></div><div class="body">Move a Pawn 2 squares forward. The squares must be empty, and it uses your move.</div><div class="foot"><span>Movement</span><span class="tag on">Playable</span></div></div>
     </div>
   </div>
@@ -281,13 +282,55 @@
   </div>
 </section>
 
+<!-- MATH -->
+<section id="math">
+  <div class="wrap">
+    <h2>The math under the hood</h2>
+    <p class="sub">Every number in the game comes from a formula that is checked by automated tests before each update goes live.</p>
+    <div class="grid g2">
+      <div class="card">
+        <h3>&#127922; Dice</h3>
+        <ul class="clean">
+          <li><b>Generator:</b> a Wolfram Rule 30 cellular automaton on a 64-cell ring, verified bit-for-bit against an independent implementation.</li>
+          <li><b>No bias:</b> each d8 face gets exactly 2<sup>29</sup> of the 2<sup>32</sup> possible values.</li>
+          <li><b>Exact odds:</b> the best of three 6d8 rolls has P(max = x) = F(x)<sup>3</sup> &minus; F(x&minus;1)<sup>3</sup>, checked against all 262,144 possible 6d8 rolls.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>&#9876; Combat &amp; infinity</h3>
+        <ul class="clean">
+          <li><b>Capture rule:</b> Offense &ge; Defense, tested for every piece pairing.</li>
+          <li><b>The King:</b> &infin; + n = &infin;. The King can never be captured or trapped, by rule, so the game never has to compare &infin; with &infin;.</li>
+          <li><b>Gambit Points:</b> GP gained always equals the value of pieces lost, and GP spent always equals the card costs. Checked on every action of 100 stress-test games.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>&#129504; The computer opponent</h3>
+        <ul class="clean">
+          <li><b>Search:</b> alpha-beta search with iterative deepening, a transposition table (Zobrist hashing), quiescence search, null-move pruning, late-move reductions, and killer/history move ordering.</li>
+          <li><b>Fair play:</b> it only knows about its own traps, never yours.</li>
+          <li><b>Checked:</b> its legal moves match the rules in every tested position, and it scores positions identically for both colors.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>&#128200; Win chance &amp; rating</h3>
+        <ul class="clean">
+          <li><b>Win %:</b> 1 / (1 + 10<sup>&minus;eval/400</sup>), the same logistic curve Elo uses.</li>
+          <li><b>Your rating:</b> R&prime; = R + K(S &minus; E), with E = 1 / (1 + 10<sup>(R<sub>opp</sub> &minus; R)/400</sup>). K is 40 for your first 30 games, then 20. The level ratings are estimates.</li>
+          <li><b>Balance:</b> in 100 computer-vs-computer games, White won 44, Black 49, with 7 draws.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- FAQ -->
 <section id="faq">
   <div class="wrap">
     <h2>FAQ</h2>
     <details><summary>Do I need to download or sign up for anything?</summary><p>No. Gambit Chess runs entirely in your browser and is free to play.</p></details>
     <details><summary>The board is blank or won't load.</summary><p>The game needs WebGL for its 3D board. Use an up-to-date Chrome, Edge, Firefox or Safari. If it still doesn't show, try opening it in its own tab with the "Open full screen" button.</p></details>
-    <details><summary>Why was my capture rejected?</summary><p>Your attacker's total Offense was lower than the target's total Defense. The red message above the board shows both numbers.</p></details>
+    <details><summary>Why was my capture rejected?</summary><p>Your attacker's total Offense was lower than the target's total Defense (the red message above the board shows both numbers), or the target was a King, which can never be captured.</p></details>
     <details><summary>"Play Game" is greyed out.</summary><p>Roll the dice first: click 🎲 Roll Dice. After that, Play Game is always available, and any unspent points are assigned for you.</p></details>
     <details><summary>Why can't I make that move?</summary><p>Your King is in check, or the move would put it in check. Read the red message above the board. It tells you exactly why the move was refused.</p></details>
     <details><summary>How do I restart?</summary><p>Click <b>New Game</b> above the board, or <b>Play Again</b> when a game ends. Each new game starts with a fresh dice roll.</p></details>
