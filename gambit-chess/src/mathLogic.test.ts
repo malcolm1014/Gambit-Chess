@@ -1,6 +1,26 @@
 import { describe, it, expect } from 'vitest';
-import { rollDice, rollAllocationPool, getOffense, getDefense, canCapture } from './mathLogic';
+import { rollDice, rollAllocationPool, getOffense, getDefense, canCapture, Rule30PRNG } from './mathLogic';
 import { createPiece } from './engine';
+
+describe('mathLogic PRNG', () => {
+  it('Rule30PRNG should generate deterministic sequences given the same seed', () => {
+    const prng1 = new Rule30PRNG(12345);
+    const prng2 = new Rule30PRNG(12345);
+
+    for (let i = 0; i < 10; i++) {
+      expect(prng1.nextFloat()).toBe(prng2.nextFloat());
+    }
+  });
+
+  it('Rule30PRNG nextFloat should return values between 0 and 1', () => {
+    const prng = new Rule30PRNG();
+    for (let i = 0; i < 100; i++) {
+      const val = prng.nextFloat();
+      expect(val).toBeGreaterThanOrEqual(0);
+      expect(val).toBeLessThan(1);
+    }
+  });
+});
 
 describe('mathLogic', () => {
   it('rollDice should return a number within the expected range', () => {
