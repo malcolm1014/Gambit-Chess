@@ -116,9 +116,10 @@ export function IntroScreen({ onCompleteAllocation }: IntroScreenProps) {
 
   return (
     <div className="intro-screen">
-      <h1>Welcome to Gambit Chess</h1>
+      <h1>Gambit Chess</h1>
+      <p className="tagline">Roll the bones. Arm your army. Outwit the Shadow.</p>
 
-      <div className="rules-section" style={{ textAlign: 'left', lineHeight: '1.6' }}>
+      <div className="rules-section">
         <h2>The Game</h2>
         <p>
           Gambit Chess is a mathematically rigorous variant of traditional chess that introduces RPG-style stat allocation, a resource economy, and hidden information mechanics.
@@ -135,29 +136,27 @@ export function IntroScreen({ onCompleteAllocation }: IntroScreenProps) {
       </div>
 
       {currentPlayer === 'white' && (
-        <div className="mode-selector" style={{ marginBottom: '2rem' }}>
-          <h3 style={{ marginBottom: '1rem' }}>Select Game Mode</h3>
+        <div className="mode-selector">
+          <h3>Choose Your Battle</h3>
           <button
             className={mode === 'pvc' ? 'active-mode' : ''}
             onClick={() => setMode('pvc')}
-            style={{ marginRight: '1rem', padding: '0.8rem 1.5rem', cursor: 'pointer', borderRadius: '4px', border: mode === 'pvc' ? '2px solid #2563eb' : '1px solid #ccc' }}
           >
             1 Player (vs AI)
           </button>
           <button
             className={mode === 'pvp' ? 'active-mode' : ''}
             onClick={() => setMode('pvp')}
-            style={{ padding: '0.8rem 1.5rem', cursor: 'pointer', borderRadius: '4px', border: mode === 'pvp' ? '2px solid #2563eb' : '1px solid #ccc' }}
           >
             2 Player (Local)
           </button>
         </div>
       )}
 
-      <hr style={{ margin: '2rem 0', borderColor: '#e2e8f0' }} />
+      <hr className="divider" />
 
       <div className="allocation-section">
-        <h2>Allocation Phase - {currentPlayer.toUpperCase()}</h2>
+        <h2>Arm Your Army — {currentPlayer === 'white' ? '☀ Light (White)' : '☾ Shadow (Black)'}</h2>
 
         <div className="dice-panel">
           {!hasRolled && <p>Roll 6d8 three times. Your best total becomes your points to spend.</p>}
@@ -189,15 +188,15 @@ export function IntroScreen({ onCompleteAllocation }: IntroScreenProps) {
               {PIECE_TYPES.map(pieceType => (
                 <div key={pieceType} className="allocation-item">
                   <strong>{pieceType.toUpperCase()}</strong>
-                  <div style={{ marginTop: '0.5rem' }}>
-                    <small>+Offense: {currentAllocations[pieceType].modOffense}</small>
+                  <div className="stat-row">
+                    <small>⚔ +Offense: {currentAllocations[pieceType].modOffense}</small>
                     <div className="allocation-controls">
                       <button onClick={() => handleAllocate(pieceType, 'modOffense', -1)} disabled={currentAllocations[pieceType].modOffense === 0}>-</button>
                       <button onClick={() => handleAllocate(pieceType, 'modOffense', 1)} disabled={pointsRemaining === 0}>+</button>
                     </div>
                   </div>
-                  <div style={{ marginTop: '0.5rem' }}>
-                    <small>+Defense: {currentAllocations[pieceType].modDefense}</small>
+                  <div className="stat-row">
+                    <small>🛡 +Defense: {currentAllocations[pieceType].modDefense}</small>
                     <div className="allocation-controls">
                       <button onClick={() => handleAllocate(pieceType, 'modDefense', -1)} disabled={currentAllocations[pieceType].modDefense === 0}>-</button>
                       <button onClick={() => handleAllocate(pieceType, 'modDefense', 1)} disabled={pointsRemaining === 0}>+</button>
@@ -214,7 +213,7 @@ export function IntroScreen({ onCompleteAllocation }: IntroScreenProps) {
         {hasRolled ? playLabel : 'Roll the dice to start'}
       </button>
       {hasRolled && pointsRemaining > 0 && (
-        <p style={{ fontSize: '0.85rem', color: '#64748b' }}>Unspent points will be assigned automatically.</p>
+        <p className="hint">Unspent points will be assigned automatically.</p>
       )}
     </div>
   );

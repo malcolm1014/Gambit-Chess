@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { createInitialState, executeMove, placeTrap, playRally, isGameOver } from './engine';
+import { createInitialState, executeMove, placeTrap, playRally, isGameOver, getLegalMoves } from './engine';
+import { getOffense, getDefense } from './mathLogic';
 import { rollAllocationPool } from './mathLogic';
 import { useEffect } from 'react';
 import { Board3D } from './Board3D';
@@ -17,6 +18,8 @@ const DEFAULT_DECK: CardData[] = [
 ];
 
 const cap = (s?: string | null) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : '');
+const PIECE_ICON: Record<string, string> = { king: '♚', queen: '♛', rook: '♜', bishop: '♝', knight: '♞', pawn: '♟' };
+const fmt = (n: number) => (n === Infinity ? '∞' : String(n));
 
 function App() {
   const [gameState, setGameState] = useState<GameState>(() =>
@@ -30,6 +33,12 @@ function App() {
 
   const gameOver = isGameOver(gameState);
   const isComputerTurn = gameMode === 'pvc' && gameState.turn === 'black';
+  const selectedPiece = selectedSquare ? gameState.board[selectedSquare.row][selectedSquare.col].piece : null;
+  const legalTargets = selectedSquare && !pendingAction && !gameOver && gameState.phase === 'main'
+    ? getLegalMoves(gameState)
+        .filter(m => m.from.row === selectedSquare.row && m.from.col === selectedSquare.col)
+        .map(m => m.to)
+    : [];
 
   useEffect(() => {
     if (gameState.phase === 'main' && !isGameOver(gameState) && gameMode === 'pvc' && gameState.turn === 'black') {
@@ -178,16 +187,21 @@ function App() {
 
   return (
     <div className="app-container">
-      <h1>Gambit Chess</h1>
-      <button className="new-game-button" onClick={handleNewGame}>New Game (re-roll dice)</button>
+      <header className="game-header">
+        <h1>Gambit Chess</h1>
+        <button className="new-game-button" onClick={handleNewGame}>⟲ New Game</button>
+      </header>
 
       <div className="stats">
-        <div className={`player-stat ${gameState.turn === 'white' ? 'active' : ''}`}>
-          White GP: {gameState.players.white.gp}
-        </div>
-        <div className={`player-stat ${gameState.turn === 'black' ? 'active' : ''}`}>
-          Black GP: {gameState.players.black.gp}
-        </div>
+        {(['white', 'black'] as const).map(color => (
+          <div key={color} className={`player-stat side-${color} ${gameState.turn === color && !gameOver ? 'active' : ''}`}>
+            <span className="side-name">
+              {color === 'white' ? '☀ Light' : '☾ Shadow'}
+              <small>{color === 'white' ? 'White' : 'Black'}{gameMode === 'pvc' ? (color === 'white' ? ' · You' : ' · Computer') : ''}</small>
+            </span>
+            <span className="gp" title="Gambit Points"><span className="coin" />{gameState.players[color].gp} GP</span>
+          </div>
+        ))}
       </div>
 
       {gameOver && (
@@ -209,7 +223,7 @@ function App() {
       )}
       {error && <div className="error">{error}</div>}
       {pendingAction && (
-        <div className="status-message" style={{ color: '#d90429', fontWeight: 'bold', margin: '10px 0' }}>
+        <div className="status-message">
           {pendingAction.type === 'trap' && `Select an empty square on your side of the board to place ${pendingAction.card.name}.`}
           {pendingAction.type === 'rally' && 'Select one of your pieces to Rally (+2 Offense this turn).'}
           {pendingAction.type === 'sprint' && 'Select one of your Pawns to Sprint 2 squares forward.'}
@@ -221,13 +235,39 @@ function App() {
         gameState={gameState}
         onSquareClick={handleSquareClick}
         selectedSquare={selectedSquare}
+        legalTargets={legalTargets}
+        trapViewer={gameMode === 'pvc' ? 'white' : (isComputerTurn ? null : gameState.turn)}
       />
 
-      <div className="history" ref={el => { if (el) el.scrollTop = el.scrollHeight; }}>
-        {gameState.history.map((msg: string, idx: number) => (
-          <div key={idx}>{msg}</div>
-        ))}
-        {gameState.history.length === 0 && <div>Game started. Awaiting first move...</div>}
+      <div className="info-row">
+        <div className="stat-block">
+          <h3>Unit</h3>
+          {selectedPiece ? (
+            <>
+              <div className="unit-name">
+                <span className={`unit-icon ${selectedPiece.color}`}>{PIECE_ICON[selectedPiece.type]}</span>
+                {cap(selectedPiece.type)}
+                {selectedPiece.tempOffense ? <span className="rally-tag">Rallied</span> : null}
+              </div>
+              <div className="stat-line"><span>⚔ Offense</span><strong>{fmt(getOffense(selectedPiece))}</strong></div>
+              <div className="stat-line"><span>🛡 Defense</span><strong>{fmt(getDefense(selectedPiece))}</strong></div>
+              <div className="stat-note">Base {fmt(selectedPiece.baseOffense)} + {selectedPiece.modOffense}{selectedPiece.tempOffense ? ` + ${selectedPiece.tempOffense} rally` : ''} / Base {fmt(selectedPiece.baseDefense)} + {selectedPiece.modDefense}</div>
+              <div className="stat-note">{legalTargets.length} legal move{legalTargets.length === 1 ? '' : 's'}</div>
+            </>
+          ) : (
+            <p className="stat-note">Select one of your pieces to see its stats and legal moves.</p>
+          )}
+        </div>
+
+        <div className="history-panel">
+          <h3>Chronicle</h3>
+          <div className="history" ref={el => { if (el) el.scrollTop = el.scrollHeight; }}>
+            {gameState.history.map((msg: string, idx: number) => (
+              <div key={idx}>{msg}</div>
+            ))}
+            {gameState.history.length === 0 && <div>The battle begins. Light moves first…</div>}
+          </div>
+        </div>
       </div>
 
       <div className="cards-container">
@@ -238,6 +278,7 @@ function App() {
                key={card.id}
                card={card}
                canAfford={!gameOver && !isComputerTurn && currentPlayer.gp >= card.cost}
+               active={pendingAction?.card.id === card.id}
                onPlay={(c) => {
                  setError(null);
                  setSelectedSquare(null);
