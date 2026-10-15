@@ -558,3 +558,25 @@ body[data-theme="classic"] .dice-roll { background: linear-gradient(135deg, #4a3
 
 .king-note { color: var(--muted); font-size: 0.92rem; margin: -8px auto 18px; max-width: 640px; }
 .king-note b { color: var(--gold-hi); }
+
+/* ============ Per-piece allocation ============ */
+.role-legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 16px; color: var(--muted); font-size: 0.85rem; margin: 6px 0 4px; }
+.role-legend b { color: var(--parchment); font-weight: 600; }
+.army-grid { margin: 10px 0 22px; }
+.army-grid h4 { color: var(--gold-hi); font-family: var(--head); font-size: 0.85rem; letter-spacing: 0.06em; margin: 14px 0 6px; text-align: left; }
+.slot-row-grid { display: grid; gap: 6px; }
+.slot-row-grid.back { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+.slot-row-grid.pawns { grid-template-columns: repeat(8, minmax(0, 1fr)); }
+.slot { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 6px 4px; min-width: 0; }
+.slot.spent { border-color: var(--gold); }
+.slot-head { font-family: var(--head); color: var(--parchment); font-size: 0.85rem; text-transform: uppercase; }
+.slot-icon { font-size: 1.25rem; margin-right: 3px; color: var(--gold-hi); }
+.slot-row { margin-top: 4px; }
+.slot-stat { display: block; font-size: 0.85rem; color: var(--text); white-space: nowrap; }
+.slot-stat small { color: var(--gold-hi); }
+.slot .allocation-controls { gap: 4px; margin-top: 2px; }
+.slot .allocation-controls button { width: 26px; height: 24px; padding: 0; }
+@media (max-width: 640px) {
+  .slot-row-grid.back { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .slot-row-grid.pawns { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}

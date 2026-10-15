@@ -6,7 +6,9 @@ import { ALLOCATION_DIST, percentile, headToHead } from './stats';
 import { LEVELS } from './search';
 import type { Difficulty } from './search';
 
-type AllocationState = Record<PieceType, { modOffense: number, modDefense: number }>;
+// Every piece gets its own points. Keys are the piece's slot without its colour,
+// e.g. 'pawn-a', 'knight-g', 'queen' (matches the engine's piece ids).
+export type AllocationState = Record<string, { modOffense: number, modDefense: number }>;
 
 interface IntroScreenProps {
   gameState: GameState;
@@ -18,27 +20,28 @@ interface IntroScreenProps {
   ) => void;
 }
 
-const ALLOCATABLE: PieceType[] = ['pawn', 'knight', 'bishop', 'rook', 'queen'];
+interface Slot { key: string; type: PieceType; file: string }
+const FILES = 'abcdefgh'.split('');
+const BACK_RANK: PieceType[] = ['rook', 'knight', 'bishop', 'queen', 'king', 'bishop', 'knight', 'rook'];
+// Back rank (King skipped — its stats are already infinite), then the eight Pawns
+const BACK_SLOTS: Slot[] = BACK_RANK.map((type, i) => ({ type, file: FILES[i], key: type === 'queen' ? 'queen' : `${type}-${FILES[i]}` }))
+  .filter(s => s.type !== 'king');
+const PAWN_SLOTS: Slot[] = FILES.map(f => ({ type: 'pawn' as PieceType, file: f, key: `pawn-${f}` }));
+const SLOTS: Slot[] = [...BACK_SLOTS, ...PAWN_SLOTS];
+const ICON: Record<string, string> = { queen: '♛', rook: '♜', bishop: '♝', knight: '♞', pawn: '♟' };
 const fmtStat = (n: number) => (n === Infinity ? '∞' : String(n));
 
-const emptyAllocation = (): AllocationState => ({
-  pawn: { modOffense: 0, modDefense: 0 },
-  knight: { modOffense: 0, modDefense: 0 },
-  bishop: { modOffense: 0, modDefense: 0 },
-  rook: { modOffense: 0, modDefense: 0 },
-  queen: { modOffense: 0, modDefense: 0 },
-  king: { modOffense: 0, modDefense: 0 },
-});
+const emptyAllocation = (): AllocationState =>
+  Object.fromEntries(SLOTS.map(s => [s.key, { modOffense: 0, modDefense: 0 }]));
 
-// Spread `points` randomly across piece types and stats (used for the AI,
+// Spread `points` randomly across individual pieces and stats (used for the AI,
 // and for any points a player leaves unspent when they click Play).
 function autoAllocate(base: AllocationState, points: number): AllocationState {
   const result: AllocationState = JSON.parse(JSON.stringify(base));
   for (let i = 0; i < points; i++) {
-    // The King's stats are already infinite, so points there would be wasted
-    const type = ALLOCATABLE[Math.floor(Math.random() * ALLOCATABLE.length)];
+    const slot = SLOTS[Math.floor(Math.random() * SLOTS.length)];
     const stat = Math.random() < 0.5 ? 'modOffense' : 'modDefense';
-    result[type][stat] += 1;
+    result[slot.key][stat] += 1;
   }
   return result;
 }
@@ -72,18 +75,43 @@ export function IntroScreen({ onCompleteAllocation }: IntroScreenProps) {
     }, 600);
   };
 
-  const handleAllocate = (pieceType: PieceType, stat: 'modOffense' | 'modDefense', delta: number) => {
-    if (!hasRolled || pieceType === 'king') return; // ∞ + n = ∞: points on the King would be wasted
+  const handleAllocate = (key: string, stat: 'modOffense' | 'modDefense', delta: number) => {
+    if (!hasRolled || !currentAllocations[key]) return; // the King has no slot: ∞ + n = ∞
     if (delta > 0 && pointsRemaining < delta) return;
-    if (delta < 0 && currentAllocations[pieceType][stat] < Math.abs(delta)) return;
+    if (delta < 0 && currentAllocations[key][stat] < Math.abs(delta)) return;
     setPointsRemaining(prev => prev - delta);
     setCurrentAllocations(prev => ({
       ...prev,
-      [pieceType]: {
-        ...prev[pieceType],
-        [stat]: prev[pieceType][stat] + delta
-      }
+      [key]: { ...prev[key], [stat]: prev[key][stat] + delta }
     }));
+  };
+
+  // Put every point back in the pool
+  const handleReset = () => {
+    if (!currentRoll) return;
+    setCurrentAllocations(emptyAllocation());
+    setPointsRemaining(currentRoll.best);
+  };
+
+  const renderSlot = (slot: Slot) => {
+    const role = PIECE_ROLES[slot.type];
+    const a = currentAllocations[slot.key];
+    const row = (stat: 'modOffense' | 'modDefense', icon: string, base: number) => (
+      <div className="slot-row">
+        <span className="slot-stat">{icon} <b>{fmtStat(base + a[stat])}</b>{a[stat] > 0 && <small> +{a[stat]}</small>}</span>
+        <span className="allocation-controls">
+          <button onClick={() => handleAllocate(slot.key, stat, -1)} disabled={a[stat] === 0} aria-label={`Remove ${stat === 'modOffense' ? 'Offense' : 'Defense'} from ${slot.type} ${slot.file}`}>−</button>
+          <button onClick={() => handleAllocate(slot.key, stat, 1)} disabled={pointsRemaining === 0} aria-label={`Add ${stat === 'modOffense' ? 'Offense' : 'Defense'} to ${slot.type} ${slot.file}`}>+</button>
+        </span>
+      </div>
+    );
+    return (
+      <div key={slot.key} className={`slot ${a.modOffense + a.modDefense > 0 ? 'spent' : ''}`} title={`${role.title}: ${role.blurb}`}>
+        <div className="slot-head"><span className="slot-icon">{ICON[slot.type] + '\uFE0E'}</span>{slot.file}</div>
+        {row('modOffense', '⚔', role.offense)}
+        {row('modDefense', '🛡', role.defense)}
+      </div>
+    );
   };
 
   const handleAutoAssign = () => {
@@ -139,7 +167,7 @@ export function IntroScreen({ onCompleteAllocation }: IntroScreenProps) {
         <ul>
           <li><strong>Base Stats by Role:</strong> Every piece starts with Offense (O) and Defense (D) that fit who it is: Pawn <em>Spearman</em> 2/1, Knight <em>Cavalry</em> 4/3, Bishop <em>Warden</em> 3/4, Rook <em>Siege Tower</em> 5/6, Queen <em>Commander</em> 9/7, King <em>Sovereign</em> ∞/∞. Your dice points are added on top.</li>
           <li><strong>Combat Threshold:</strong> You can <em>only</em> execute a legal capture if the attacking piece's Total Offense (Base + Modifiers, +2 with Rally) is &ge; the defending piece's Total Defense. The King can never be captured.</li>
-          <li><strong>Allocation Phase:</strong> At the start of the game, a Wolfram Rule 30 pseudo-random algorithm rolls 6d8 three times and keeps the best total (average 31.8). You secretly add these points to your piece types' Offense or Defense before the first move.</li>
+          <li><strong>Allocation Phase:</strong> At the start of the game, a Wolfram Rule 30 pseudo-random algorithm rolls 6d8 three times and keeps the best total (average 31.8). You spend these points on each piece's Offense or Defense, one piece at a time — even each Pawn separately — before the first move. Once play starts, every piece shows its stats above its head.</li>
           <li><strong>Gambit Points (GP):</strong> Both sides start with 10 GP. When your piece is captured, you gain GP equal to its chess value (Pawn 1, Knight/Bishop 3, Rook 5, Queen 9).</li>
           <li><strong>Cards & Traps:</strong> Spend GP on Rally (2 GP), Sprint (3 GP) or a hidden Pitfall trap (6 GP) on your half of the board. Enemy pieces that step on your trap are destroyed — except the King, whose infinite Defense just uses the trap up.</li>
           <li><strong>Winning:</strong> Checkmate the enemy King. Stalemate, or 50 moves each with no piece removed, is a draw.</li>
@@ -208,34 +236,21 @@ export function IntroScreen({ onCompleteAllocation }: IntroScreenProps) {
               {pointsRemaining > 0 && (
                 <button className="auto-button" onClick={handleAutoAssign}>Auto-assign</button>
               )}
+              {currentRoll && pointsRemaining < currentRoll.best && (
+                <button className="auto-button" onClick={handleReset}>Reset</button>
+              )}
             </p>
 
-            <div className="allocation-grid">
-              {ALLOCATABLE.map(pieceType => (
-                <div key={pieceType} className="allocation-item">
-                  <strong>{pieceType.toUpperCase()}</strong>
-                  <div className="role-title">{PIECE_ROLES[pieceType].title}</div>
-                  <div className="role-blurb">{PIECE_ROLES[pieceType].blurb}</div>
-                  <div className="role-total">
-                    ⚔ {fmtStat(PIECE_ROLES[pieceType].offense + currentAllocations[pieceType].modOffense)}
-                    {'  '}🛡 {fmtStat(PIECE_ROLES[pieceType].defense + currentAllocations[pieceType].modDefense)}
-                  </div>
-                  <div className="stat-row">
-                    <small>⚔ Offense: base {fmtStat(PIECE_ROLES[pieceType].offense)} + {currentAllocations[pieceType].modOffense}</small>
-                    <div className="allocation-controls">
-                      <button onClick={() => handleAllocate(pieceType, 'modOffense', -1)} disabled={currentAllocations[pieceType].modOffense === 0}>-</button>
-                      <button onClick={() => handleAllocate(pieceType, 'modOffense', 1)} disabled={pointsRemaining === 0}>+</button>
-                    </div>
-                  </div>
-                  <div className="stat-row">
-                    <small>🛡 Defense: base {fmtStat(PIECE_ROLES[pieceType].defense)} + {currentAllocations[pieceType].modDefense}</small>
-                    <div className="allocation-controls">
-                      <button onClick={() => handleAllocate(pieceType, 'modDefense', -1)} disabled={currentAllocations[pieceType].modDefense === 0}>-</button>
-                      <button onClick={() => handleAllocate(pieceType, 'modDefense', 1)} disabled={pointsRemaining === 0}>+</button>
-                    </div>
-                  </div>
-                </div>
+            <div className="role-legend">
+              {(['pawn', 'knight', 'bishop', 'rook', 'queen'] as PieceType[]).map(t => (
+                <span key={t}>{ICON[t] + '\uFE0E'} <b>{PIECE_ROLES[t].title}</b> {PIECE_ROLES[t].offense}/{PIECE_ROLES[t].defense}</span>
               ))}
+            </div>
+            <div className="army-grid">
+              <h4>Back rank</h4>
+              <div className="slot-row-grid back">{BACK_SLOTS.map(renderSlot)}</div>
+              <h4>Pawns — each one is armed separately</h4>
+              <div className="slot-row-grid pawns">{PAWN_SLOTS.map(renderSlot)}</div>
             </div>
             <p className="king-note">♚ <b>King — Sovereign:</b> Offense and Defense are already infinite (∞ + any points = ∞), so it needs no points. It can never be captured — only checkmated.</p>
           </>

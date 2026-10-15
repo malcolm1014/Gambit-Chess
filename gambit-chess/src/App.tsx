@@ -13,6 +13,7 @@ import { LEVELS } from './search';
 import type { Difficulty, SearchInfo } from './search';
 import { winProbability, eloUpdate } from './stats';
 import { IntroScreen } from './IntroScreen';
+import type { AllocationState } from './IntroScreen';
 import type { GameState } from './types';
 import './index.css';
 
@@ -209,7 +210,7 @@ function App() {
     }
   };
 
-  const handleCompleteAllocation = (allocations: any, selectedMode: 'pvp' | 'pvc', dicePools?: { white: number, black: number }, level?: Difficulty) => {
+  const handleCompleteAllocation = (allocations: { white: AllocationState, black: AllocationState }, selectedMode: 'pvp' | 'pvc', dicePools?: { white: number, black: number }, level?: Difficulty) => {
     if (level) setDifficulty(level);
     // Apply allocations to the board pieces
     const newState = { ...gameState };
@@ -223,10 +224,12 @@ function App() {
       for (let c = 0; c < 8; c++) {
         const piece = newState.board[r][c].piece;
         if (piece && piece.type !== 'king') { // the King's infinite stats never take modifiers
-          const colorAllocations = allocations[piece.color];
-          if (colorAllocations && colorAllocations[piece.type]) {
-            piece.modOffense = colorAllocations[piece.type].modOffense;
-            piece.modDefense = colorAllocations[piece.type].modDefense;
+          // Each piece has its own allocation, keyed by its slot (e.g. 'white-pawn-c' → 'pawn-c')
+          const slot = piece.id.slice(piece.color.length + 1);
+          const own = allocations[piece.color]?.[slot];
+          if (own) {
+            piece.modOffense = own.modOffense;
+            piece.modDefense = own.modDefense;
           }
         }
       }

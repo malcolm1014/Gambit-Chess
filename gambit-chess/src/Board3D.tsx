@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import type { GameState, Piece, PlayerColor } from './types';
 import { Piece3D } from './Piece3D';
 import type { BoardTheme } from './Piece3D';
+import { getOffense, getDefense } from './mathLogic';
 
 type Pos = { row: number; col: number };
 
@@ -116,8 +117,45 @@ const TrapRune: React.FC = () => {
   );
 };
 
+// Height of each piece's top, so the stat tag floats just above its head
+const PIECE_TOP: Record<string, number> = { pawn: 1.25, rook: 1.25, knight: 1.5, bishop: 1.65, queen: 1.85, king: 2.1 };
+
+// Floating Offense / Defense tag above a piece. A sprite always faces the camera.
+const StatTag: React.FC<{ piece: Piece }> = ({ piece }) => {
+  const off = getOffense(piece), def = getDefense(piece);
+  const rallied = !!piece.tempOffense;
+  const texture = useMemo(() => {
+    const cv = document.createElement('canvas');
+    cv.width = 256; cv.height = 96;
+    const ctx = cv.getContext('2d')!;
+    const pill = (x: number, fill: string, stroke: string, text: string) => {
+      ctx.beginPath();
+      ctx.roundRect(x, 10, 118, 76, 30);
+      ctx.fillStyle = fill; ctx.fill();
+      ctx.lineWidth = 6; ctx.strokeStyle = stroke; ctx.stroke();
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 50px system-ui, sans-serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(text, x + 59, 50);
+    };
+    const fmt = (n: number) => (n === Infinity ? '∞' : String(n));
+    pill(6, rallied ? '#c46a00' : '#9b1c1c', rallied ? '#ffd166' : '#f2a3a3', '⚔' + fmt(off));
+    pill(132, '#1c4f9b', '#a3c4f2', '🛡' + fmt(def));
+    const t = new THREE.CanvasTexture(cv);
+    t.colorSpace = THREE.SRGBColorSpace;
+    t.anisotropy = 4;
+    return t;
+  }, [off, def, rallied]);
+  useEffect(() => () => texture.dispose(), [texture]);
+  return (
+    <sprite position={[0, PIECE_TOP[piece.type] + 0.3, 0]} scale={[0.82, 0.31, 1]} renderOrder={10}>
+      <spriteMaterial map={texture} transparent depthTest={false} depthWrite={false} toneMapped={false} />
+    </sprite>
+  );
+};
+
 // A piece that glides to its new square instead of teleporting
-const AnimatedPiece: React.FC<{ piece: Piece; pos: Pos; selected: boolean; onClick: () => void; theme: BoardTheme }> = ({ piece, pos, selected, onClick, theme }) => {
+const AnimatedPiece: React.FC<{ piece: Piece; pos: Pos; selected: boolean; onClick: () => void; theme: BoardTheme; showStats: boolean }> = ({ piece, pos, selected, onClick, theme, showStats }) => {
   const ref = useRef<THREE.Group>(null);
   const target = useMemo(() => new THREE.Vector3(pos.col, 0, pos.row), [pos.col, pos.row]);
   const first = useRef(true);
@@ -147,6 +185,7 @@ const AnimatedPiece: React.FC<{ piece: Piece; pos: Pos; selected: boolean; onCli
       onPointerOut={() => { document.body.style.cursor = 'auto'; }}
     >
       <Piece3D piece={piece} theme={theme} />
+      {showStats && piece.type !== 'king' && <StatTag piece={piece} />}
     </group>
   );
 };
@@ -155,6 +194,7 @@ export const Board3D: React.FC<Board3DProps> = ({ gameState, onSquareClick, sele
   const containerRef = useRef<HTMLDivElement>(null);
   const controlsRef = useRef<any>(null);
   const [isFull, setIsFull] = useState(false);
+  const [showStats, setShowStats] = useState(true);
   const classic = theme === 'classic';
 
   useEffect(() => {
@@ -178,6 +218,7 @@ export const Board3D: React.FC<Board3DProps> = ({ gameState, onSquareClick, sele
   return (
     <div className={`board-container ${isFull ? 'is-full' : ''}`} ref={containerRef}>
       <div className="board-controls">
+        <button type="button" onClick={() => setShowStats(v => !v)} title="Show or hide each piece's Offense / Defense">{showStats ? '⚔ Hide stats' : '⚔ Show stats'}</button>
         <button type="button" onClick={() => controlsRef.current?.reset()} title="Reset camera">↺ View</button>
         <button type="button" onClick={toggleFullscreen} title="Full screen">{isFull ? '✕ Exit full screen' : '⛶ Full screen'}</button>
       </div>
@@ -273,6 +314,7 @@ export const Board3D: React.FC<Board3DProps> = ({ gameState, onSquareClick, sele
               piece={piece}
               pos={pos}
               theme={theme}
+              showStats={showStats}
               selected={selectedSquare?.row === pos.row && selectedSquare?.col === pos.col}
               onClick={() => onSquareClick(pos.row, pos.col)}
             />
