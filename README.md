@@ -20,7 +20,7 @@ Chess with RPG stats, dice, a sacrifice economy and hidden traps — playable fr
   | King | Sovereign | ∞ | ∞ | — |
 
 - **Combat Threshold.** A capture works only if attacker Offense ≥ defender Defense. The King can never be captured.
-- **Setup.** Roll 6d8 three times, keep the best (average 31.8), and spend the points on piece types. The King needs none.
+- **Setup.** Roll 6d8 three times, keep the best (average 31.8), and spend the points on individual pieces (each Pawn separately). The King needs none. During play, each piece shows its Offense / Defense above its head.
 - **Gambit Points.** Both sides start with 10 GP. Losing a piece pays its chess value in GP.
 - **Cards.** Rally (2 GP): +2 Offense until you move. Sprint (3 GP): a Pawn moves 2 squares, using your move. Pitfall (6 GP): a hidden trap on your half; enemy pieces entering it are destroyed (Kings are immune).
 - **Winning.** Checkmate. Stalemate, or 50 moves each with no piece removed, is a draw.

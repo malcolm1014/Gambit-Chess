@@ -196,7 +196,7 @@
     <p class="sub">The game is in two phases. First you set up your army, then you play.</p>
     <div class="grid g4">
       <div class="card"><div class="num">1</div><h3>Pick a mode</h3><p><b>1 Player (vs AI)</b> puts you on White against a real chess search engine with four strengths, from Squire to Archmage. <b>2 Player (Local)</b> lets two people take turns on one screen.</p></div>
-      <div class="card"><div class="num">2</div><h3>Roll &amp; spend your dice</h3><p>Click <b>🎲 Roll Dice</b>. The game rolls 6d8 three times and you keep the highest total, and you can re-roll before you start. Use the <b>+ / &minus;</b> buttons to add Offense or Defense to each piece type, then click <b>Play Game</b>. Any points you leave unspent are assigned automatically.</p></div>
+      <div class="card"><div class="num">2</div><h3>Roll &amp; spend your dice</h3><p>Click <b>🎲 Roll Dice</b>. The game rolls 6d8 three times and you keep the highest total, and you can re-roll before you start. Use the <b>+ / &minus;</b> buttons to add Offense or Defense to each piece, one at a time (every Pawn is armed separately), then click <b>Play Game</b>. Any points you leave unspent are assigned automatically.</p></div>
       <div class="card"><div class="num">3</div><h3>Move &amp; capture</h3><p>White moves first. Click one of your pieces, then click the square you want. If a capture isn't strong enough, the game tells you why and the move is cancelled.</p></div>
       <div class="card"><div class="num">4</div><h3>Use your GP</h3><p>Your GP is shown at the top. Click a card you can afford. For <b>Pitfall</b>, click an empty square on your half of the board to hide a trap there.</p></div>
     </div>
@@ -218,7 +218,7 @@
       </div>
       <div>
         <h3>&#127922; Allocation Phase</h3>
-        <p style="color:var(--muted)">Each side rolls <b>6d8 three times and keeps the best total</b>: anywhere from 6 to 48 points, 31.8 on average (about 60% of rolls land between 29 and 35). The dice use a <b>Wolfram Rule 30</b> cellular-automaton random number generator. Points go to a <b>piece type</b>, so +2 Offense on Pawn gives all eight pawns +2 Offense. The King takes no points: its stats are already infinite.</p>
+        <p style="color:var(--muted)">Each side rolls <b>6d8 three times and keeps the best total</b>: anywhere from 6 to 48 points, 31.8 on average (about 60% of rolls land between 29 and 35). The dice use a <b>Wolfram Rule 30</b> cellular-automaton random number generator. Points go to <b>one piece at a time</b>: +2 Defense on your c-Pawn and +1 on your d-Pawn are separate choices. The King takes no points: its stats are already infinite. Once play starts, every piece shows its Offense and Defense above its head.</p>
         <p style="color:var(--muted)">In 2-player mode, White allocates first and Black allocates second. Have your opponent look away while you set yours.</p>
       </div>
     </div>
@@ -289,7 +289,7 @@
     <h2>Strategy tips</h2>
     <p class="sub">Some ideas to get you started.</p>
     <div class="grid g3">
-      <div class="card"><div class="icon">&#9823;</div><h3>Points on pawns go far</h3><p>A point on a piece type applies to every piece of that type. +1 on Pawn upgrades eight pieces, while +1 on Queen upgrades one.</p></div>
+      <div class="card"><div class="icon">&#9823;</div><h3>Spend where the fight will be</h3><p>Every point upgrades exactly one piece. About 32 points across 15 pieces won't make everything strong, so arm the pawns and pieces you plan to lead with, and read the enemy's stats above their heads before you attack.</p></div>
       <div class="card"><div class="icon">&#128737;</div><h3>Out-defend their attackers</h3><p>If your rook's Defense is higher than every Offense your opponent has, nothing can capture it.</p></div>
       <div class="card"><div class="icon">&#9876;</div><h3>Know your kill lines</h3><p>Write down which of your pieces can beat which of theirs. A failed capture costs you nothing, so feel free to test.</p></div>
       <div class="card"><div class="icon">&#128176;</div><h3>Trade on purpose</h3><p>Every piece you lose gives you GP. A well-timed sacrifice can pay for a trap in the right spot.</p></div>
